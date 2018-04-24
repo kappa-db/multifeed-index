@@ -65,14 +65,13 @@ test('adder', function (t) {
   }
 })
 
-return
-
 test('adder: picks up where it left off', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
   var version = null
+  var pending = 3
 
   var idx = index({
     cores: db,
@@ -84,34 +83,39 @@ test('adder: picks up where it left off', function (t) {
     storeState: function (s, cb) { version = s; cb(null) }
   })
 
-  var pending = 3
-  db.put('/foo/bar', 17, function (err) { t.error(err) })
-  db.put('/foo/baz', 12, function (err) { t.error(err) })
-  db.put('/bax/12', 1, function (err) { t.error(err) })
+  var writer
+  db.writer(function (err, w) {
+    t.error(err, 'created a writer')
+    writer = w
+    w.append({value: 17}, function (err) { t.error(err, 'appended 17') })
+    w.append({value: 12}, function (err) { t.error(err, 'appended 12') })
+    w.append({value: 1}, function (err) { t.error(err, 'appended 1') })
+  })
 
   function done () {
     idx.ready(function () {
       var pending = 1
       var sum = 0
+      var version2 = version.slice()
       var idx2 = index({
         cores: db,
         map: function (node, feed, seq, next) {
           if (typeof node.value === 'number') sum += node.value
-          next()
 
           if (!--pending) {
-            t.equals(sum, 7)
+            t.equals(sum, 7, 'processed only last item')
           }
+          next()
         },
-        fetchState: function (cb) { cb(null, version) },
-        storeState: function (s, cb) { version = s; cb(null) }
+        fetchState: function (cb) { cb(null, version2) },
+        storeState: function (s, cb) { version2 = s; cb(null) }
       })
-      idx2.ready(function () {
-        db.put('/bax/15', 7, function (err) { t.error(err) })
-      })
+      writer.append({value: 7}, function (err) { t.error(err, 'appended 7') })
     })
   }
 })
+
+return
 
 test('adder /w slow versions', function (t) {
   t.plan(6)
