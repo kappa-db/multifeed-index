@@ -11,9 +11,13 @@ var kv = umkv(memdb())
 
 var hyperkv = indexer({
   cores: multi,
-  batch: function (nodes, next) {  // each 'nodes' entry has an 'id' field that is "hypercorekey@seq"
-    console.log('indexing', nodes)
-    kv.batch(nodes, next)
+  map: function (node, feed, seq, next) {
+    var entry = {
+      id: feed.key.toString('hex') + '@' + seq,
+      key: node.key,
+      links: node.links
+    }
+    kv.batch([entry], next)
   }
 })
 
@@ -25,26 +29,24 @@ function append (w, data, cb) {
   })
 }
 
-multi.writer(function (err, w) {
+multi.writer(function (_, w) {
   append(w, {
     key: 'foo',
     value: 'bax',
     links: []
-  }, function (err, id1) {
+  }, function (_, id1) {
     console.log('id-1', id1)
     append(w, {
       key: 'foo',
       value: 'bax',
       links: [id1]
-    }, function (err, id2) {
+    }, function (_, id2) {
       console.log('id-2', id2)
       hyperkv.ready(function () {
-        kv.get('foo', function (err, res) {
-          if (err) throw err
+        kv.get('foo', function (_, res) {
           console.log(res)
         })
       })
     })
   })
 })
-
