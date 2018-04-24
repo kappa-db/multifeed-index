@@ -9,7 +9,7 @@ var memdb = require('memdb')
 // TODO: test creating the index AFTER the data has been created
 
 test('kv: create index then data', function (t) {
-  t.plan(9)
+  t.plan(10)
 
   var multi = multicore(hypercore, ram, { valueEncoding: 'json' })
 
