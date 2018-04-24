@@ -5,7 +5,8 @@
   "version": "0.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "tape test/*.js"
+    "test": "standard && tape test/*.js",
+    "lint": "standard"
   },
   "license": "ISC",
   "dependencies": {
@@ -13,6 +14,8 @@
   },
   "devDependencies": {
     "multi-hypercore": "^1.1.1",
-    "random-access-memory": "^2.4.0"
+    "random-access-memory": "^2.4.0",
+    "standard": "^11.0.1",
+    "tape": "^4.9.0"
   }
 }
