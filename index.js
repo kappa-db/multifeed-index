@@ -70,8 +70,24 @@ Indexer.prototype._run = function () {
   if (!this._at) {
     this._fetchState(function (err, state) {
       if (err) throw err  // TODO: how to bubble up errors? eventemitter?
-      var at = !state ? [] : State.deserialize(state)
-      self._at = at
+      if (!state) {
+        self._at = self._cores.feeds().map(function (feed) {
+          return {
+            key: feed.key,
+            min: 0,
+            max: 0
+          }
+        })
+      } else {
+        self._at = State.deserialize(state)
+      }
+
+      self._cores.feeds().forEach(function (feed) {
+        feed.on('append', function () {
+          self._run()
+        })
+      })
+
       work()
     })
   } else {
