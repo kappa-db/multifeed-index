@@ -69,7 +69,7 @@ Indexer.prototype._run = function () {
   // load state from storage
   if (!this._at) {
     this._fetchState(function (err, state) {
-      if (err) throw err  // TODO: how to bubble up errors? eventemitter?
+      if (err) throw err // TODO: how to bubble up errors? eventemitter?
       if (!state) {
         self._at = self._cores.feeds().map(function (feed) {
           return {
@@ -96,7 +96,7 @@ Indexer.prototype._run = function () {
 
   function work () {
     var feeds = self._cores.feeds()
-    for (var i=0; i < feeds.length; i++) {
+    for (var i = 0; i < feeds.length; i++) {
       if (self._at[i] === undefined) {
         self._at.push({ key: feeds[i].key, min: 0, max: 0 })
       }
@@ -108,9 +108,8 @@ Indexer.prototype._run = function () {
         var seq = self._at[i].max
         var n = i
         feeds[n].get(seq, function (err, node) {
-          var id = feeds[n].key.toString('hex') + '@' + seq
+          if (err) throw err // TODO: handle this better
           self._map(node, feeds[n], seq, function () {
-            // TODO: write 'at' to storage
             self._at[n].max++
             self._storeState(State.serialize(self._at), done)
           })
@@ -120,7 +119,7 @@ Indexer.prototype._run = function () {
 
     done()
 
-    function done() {
+    function done () {
       if (!--pending) {
         self._ready = true
         if (didWork) {
