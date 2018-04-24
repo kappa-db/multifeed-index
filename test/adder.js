@@ -115,10 +115,8 @@ test('adder: picks up where it left off', function (t) {
   }
 })
 
-return
-
 test('adder /w slow versions', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -138,9 +136,12 @@ test('adder /w slow versions', function (t) {
   })
 
   var pending = 3
-  db.put('/foo/bar', 17, done)
-  db.put('/foo/baz', 12, done)
-  db.put('/bax/12', 1, done)
+  db.writer(function (err, w) {
+    t.error(err)
+    w.append({value: 17}, done)
+    w.append({value: 12}, done)
+    w.append({value: 1}, done)
+  })
 
   function done (err) {
     t.error(err)
@@ -148,7 +149,7 @@ test('adder /w slow versions', function (t) {
       idx.ready(function () {
         var finalVersion = versions.deserialize(version)
         t.equal(finalVersion.length, 1)
-        t.equal(finalVersion[0], 3)
+        t.equal(finalVersion[0].max, 3)
         t.equal(sum, 30)
       })
     }
@@ -156,7 +157,7 @@ test('adder /w slow versions', function (t) {
 })
 
 test('adder /w many concurrent PUTs', function (t) {
-  t.plan(203)
+  t.plan(204)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -177,21 +178,27 @@ test('adder /w many concurrent PUTs', function (t) {
 
   var pending = 200
   var expectedSum = 0
-  for (var i = 0; i < pending; i++) {
-    var n = Math.floor(Math.random() * 10)
-    expectedSum += n
-    db.put('/number/' + i, n, function (err) { t.error(err) })
-  }
+
+  db.writer(function (err, w) {
+    t.error(err)
+    for (var i = 0; i < pending; i++) {
+      var n = Math.floor(Math.random() * 10)
+      expectedSum += n
+      w.append({value:n}, function (err) { t.error(err) })
+    }
+  })
 
   function done () {
     idx.ready(function () {
       var finalVersion = versions.deserialize(version)
       t.equal(finalVersion.length, 1)
-      t.equal(finalVersion[0], 200)
+      t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
     })
   }
 })
+
+return
 
 test('adder /w index made AFTER db population', function (t) {
   t.plan(203)
