@@ -90,6 +90,18 @@ Required `opts` include:
   `cores`. Expects params `(node, feed, seq, next)`. `next` should be called
   when you are done processing.
 
+Optional `opts` include:
+
+- `storeState`: Function of the form `function (state, cb)`. Called by the
+  indexer when there is a new indexing state to save. The user can store this
+  Buffer object whereever/however they'd like.
+- `fetchState`: Function of the form `function (cb)`. Called by the indexer to
+  seed the indexing process when the indexer is created. Expects `cb` to be
+  called with `(err, state)`, where `state` is a Buffer that was previously
+  given to `opts.storeState`.
+
+If neither of the above are given, state is stored in memory.
+
 ### index.ready(cb)
 
 Registers the callback `cb()` to fire when the indexes have "caught up" to the
