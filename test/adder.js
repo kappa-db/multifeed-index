@@ -198,10 +198,8 @@ test('adder /w many concurrent PUTs', function (t) {
   }
 })
 
-return
-
 test('adder /w index made AFTER db population', function (t) {
-  t.plan(203)
+  t.plan(204)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -210,14 +208,18 @@ test('adder /w index made AFTER db population', function (t) {
 
   var pending = 200
   var expectedSum = 0
-  for (var i = 0; i < pending; i++) {
-    var n = Math.floor(Math.random() * 10)
-    expectedSum += n
-    db.put('/number/' + i, n, function (err) {
-      t.error(err)
-      if (!--pending) done()
-    })
-  }
+
+  db.writer(function (err, w) {
+    t.error(err)
+    for (var i = 0; i < pending; i++) {
+      var n = Math.floor(Math.random() * 10)
+      expectedSum += n
+      w.append({value:n}, function (err) {
+        t.error(err)
+        if (!--pending) done()
+      })
+    }
+  })
 
   function done () {
     var idx = index({
@@ -232,14 +234,14 @@ test('adder /w index made AFTER db population', function (t) {
     idx.ready(function () {
       var finalVersion = versions.deserialize(version)
       t.equal(finalVersion.length, 1)
-      t.equal(finalVersion[0], 200)
+      t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
     })
   }
 })
 
 test('adder /w async storage', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -274,22 +276,25 @@ test('adder /w async storage', function (t) {
   })
 
   var pending = 3
-  db.put('/foo/bar', 17, function (err) { t.error(err) })
-  db.put('/foo/baz', 12, function (err) { t.error(err) })
-  db.put('/bax/12', 1, function (err) { t.error(err) })
+  db.writer(function (err, w) {
+    t.error(err)
+    w.append({value: 17}, function (err) { t.error(err) })
+    w.append({value: 12}, function (err) { t.error(err) })
+    w.append({value: 1}, function (err) { t.error(err) })
+  })
 
   function done () {
     idx.ready(function () {
       var finalVersion = versions.deserialize(version)
       t.equal(finalVersion.length, 1)
-      t.equal(finalVersion[0], 3)
+      t.equal(finalVersion[0].max, 3)
       t.equal(sum, 30)
     })
   }
 })
 
 test('adder /w async storage: ready', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   var db = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -322,24 +327,29 @@ test('adder /w async storage: ready', function (t) {
     storeState: function (s, cb) { version = s; cb(null) }
   })
 
-  db.put('/foo/bar', 17, function (err) {
+  db.writer(function (err, w) {
     t.error(err)
-    db.put('/foo/baz', 12, function (err) {
+    w.append({value: 17}, function (err) {
       t.error(err)
-      db.put('/bax/12', 1, function (err) {
+      w.append({value: 12}, function (err) {
         t.error(err)
-        idx.ready(function () {
-          getSum(function (theSum) {
-            var finalVersion = versions.deserialize(version)
-            t.equal(finalVersion.length, 1)
-            t.equal(finalVersion[0], 3)
-            t.equals(theSum, 30)
+        w.append({value: 1}, function (err) {
+          t.error(err)
+          idx.ready(function () {
+            getSum(function (theSum) {
+              var finalVersion = versions.deserialize(version)
+              t.equal(finalVersion.length, 1)
+              t.equal(finalVersion[0].max, 3)
+              t.equals(theSum, 30)
+            })
           })
         })
       })
     })
   })
 })
+
+return
 
 test('fs: adder', function (t) {
   t.plan(4)
