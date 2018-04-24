@@ -9,6 +9,7 @@ function Indexer (opts) {
   if (!opts) throw new Error('missing opts param')
   if (!opts.cores) throw new Error('missing opts param "cores"')
   if (!opts.batch) throw new Error('missing opts param "batch"')
+  // TODO: support forward & backward indexing from newest
   // TODO: support opts.batchSize
   // TODO: support batch indexing
 
@@ -26,9 +27,7 @@ function Indexer (opts) {
   })
 
   this._cores.on('feed', function (feed, idx) {
-    console.log('new feed', feed.key.toString('hex'), idx)
     feed.on('append', function () {
-      console.log('append', idx)
       self._run()
     })
     if (self._ready) self._run()
@@ -62,9 +61,7 @@ Indexer.prototype._run = function () {
     if (this._at[i].max < feeds[i].length) {
       pending++
       didWork = true
-      console.log('forward', i)
       var seq = this._at[i].max
-      console.log('index-batch', i, seq)
       var n = i
       feeds[n].get(seq, function (err, node) {
         var id = feeds[n].key.toString('hex') + '@' + seq
@@ -75,10 +72,7 @@ Indexer.prototype._run = function () {
         })
       })
     } else if (this._at[i].min > 0) {
-      console.log('backward', i)
       didWork = true
-    } else {
-      console.log('ready', i)
     }
   }
 
