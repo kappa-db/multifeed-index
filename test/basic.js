@@ -9,7 +9,7 @@ var memdb = require('memdb')
 // TODO: test creating the index AFTER the data has been created
 
 test('kv: create index then data', function (t) {
-  t.plan(7)
+  t.plan(9)
 
   var multi = multicore(hypercore, ram, { valueEncoding: 'json' })
 
@@ -29,6 +29,7 @@ test('kv: create index then data', function (t) {
 
   function append (w, data, cb) {
     w.append(data, function (err) {
+      t.error(err)
       var id = w.key.toString('hex') + '@' + (w.length - 1)
       cb(null, id)
     })
@@ -42,6 +43,7 @@ test('kv: create index then data', function (t) {
   })
 
   multi.writer(function (err, w) {
+    t.error(err)
     append(w, {
       key: 'foo',
       value: 'bax',

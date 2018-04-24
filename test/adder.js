@@ -97,7 +97,7 @@ test('adder: picks up where it left off', function (t) {
       var pending = 1
       var sum = 0
       var version2 = version.slice()
-      var idx2 = index({
+      index({
         cores: db,
         map: function (node, feed, seq, next) {
           if (typeof node.value === 'number') sum += node.value
@@ -184,7 +184,7 @@ test('adder /w many concurrent PUTs', function (t) {
     for (var i = 0; i < pending; i++) {
       var n = Math.floor(Math.random() * 10)
       expectedSum += n
-      w.append({value:n}, function (err) { t.error(err) })
+      w.append({value: n}, function (err) { t.error(err) })
     }
   })
 
@@ -214,7 +214,7 @@ test('adder /w index made AFTER db population', function (t) {
     for (var i = 0; i < pending; i++) {
       var n = Math.floor(Math.random() * 10)
       expectedSum += n
-      w.append({value:n}, function (err) {
+      w.append({value: n}, function (err) {
         t.error(err)
         if (!--pending) done()
       })
@@ -380,7 +380,7 @@ test('fs: adder', function (t) {
     for (var i = 0; i < pending; i++) {
       var value = i * 2 + 1
       expectedSum += value
-      w.append({value:value}, function (err) {
+      w.append({value: value}, function (err) {
         t.error(err)
         if (!--pending) done()
       })
@@ -467,10 +467,6 @@ test('adder + sync', function (t) {
     }
   })
 })
-
-function range (n) {
-  return (new Array(n)).fill(0)
-}
 
 function createTwo (cb) {
   var a = multicore(hypercore, ram, {valueEncoding: 'json'})
