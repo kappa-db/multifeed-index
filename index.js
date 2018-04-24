@@ -8,14 +8,14 @@ function Indexer (opts) {
 
   if (!opts) throw new Error('missing opts param')
   if (!opts.cores) throw new Error('missing opts param "cores"')
-  if (!opts.batch) throw new Error('missing opts param "batch"')
+  if (!opts.map) throw new Error('missing opts param "map"')
   // TODO: support forward & backward indexing from newest
   // TODO: support opts.batchSize
   // TODO: support batch indexing
 
   this._cores = opts.cores
-  this._batch = opts.batch
-  this._ready = true
+  this._map = opts.map
+  this._ready = false
 
   // TODO: use some kind of storage instead
   this._at = []
@@ -23,6 +23,7 @@ function Indexer (opts) {
   var self = this
 
   this._cores.ready(function () {
+    self._ready = true
     self._run()
   })
 
@@ -54,10 +55,10 @@ Indexer.prototype._run = function () {
   var feeds = this._cores.feeds()
   for (var i=0; i < feeds.length; i++) {
     if (this._at[i] === undefined) {
-      this._at.push({ min: feeds[i].length, max: feeds[i].length })
+      this._at.push({ max: 0 })  // processed up to, exclusive
     }
 
-    // prefer to process forward before backwards
+    // prefer to process forward
     if (this._at[i].max < feeds[i].length) {
       pending++
       didWork = true
@@ -65,14 +66,12 @@ Indexer.prototype._run = function () {
       var n = i
       feeds[n].get(seq, function (err, node) {
         var id = feeds[n].key.toString('hex') + '@' + seq
-        node.id = id
-        self._batch([node], function () {
+        self._map(node, feeds[n], seq, function () {
+          // TODO: write 'at' to storage
           self._at[n].max++
           done()
         })
       })
-    } else if (this._at[i].min > 0) {
-      didWork = true
     }
   }
 
