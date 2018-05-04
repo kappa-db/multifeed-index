@@ -12,12 +12,11 @@ function Indexer (opts) {
   if (!opts.batch) throw new Error('missing opts param "batch"')
   if (xor(!!opts.storeState, !!opts.fetchState)) throw new Error('either neither or both of {opts.storeState, opts.fetchState} must be provided')
   // TODO: support forward & backward indexing from newest
-  // TODO: support opts.batchSize
-  // TODO: support batch indexing
 
   this._cores = opts.cores
   this._batch = opts.batch
   this._ready = false
+  this._maxBatch = opts.maxBatch || 1
 
   this._at = null
   var state
@@ -96,26 +95,41 @@ Indexer.prototype._run = function () {
 
   function work () {
     var feeds = self._cores.feeds()
-    for (var i = 0; i < feeds.length; i++) {
+    var nodes = []
+    var seqs = []
+
+    ;(function collect (i) {
+      if (i >= feeds.length) return done()
+
       if (self._at[i] === undefined) {
         self._at.push({ key: feeds[i].key, min: 0, max: 0 })
       }
 
       // prefer to process forward
-      if (self._at[i].max < feeds[i].length) {
+      var at = self._at[i].max
+      var to = Math.min(feeds[i].length, at + self._maxBatch)
+      if (at < to) {
         pending++
         didWork = true
-        var seq = self._at[i].max
-        var n = i
-        feeds[n].get(seq, function (err, node) {
-          if (err) throw err // TODO: handle this better
-          self._batch([node], feeds[n], seq, function () {
-            self._at[n].max++
-            self._storeState(State.serialize(self._at), done)
-          })
-        })
+        var toCollect = to - at
+        for (var seq = at; seq < to; seq++) {
+          feeds[i].get(seq, function (seq, err, node) {
+            if (err) throw err // TODO: handle this better
+            toCollect--
+            nodes.push(node)
+            seqs.push(seq)
+            if (!toCollect) {
+              self._batch(nodes, feeds[i], seqs, function () {
+                self._at[i].max++
+                self._storeState(State.serialize(self._at), done)
+              })
+            }
+          }.bind(null, seq))
+        }
+      } else {
+        collect(i + 1)
       }
-    }
+    })(0)
 
     done()
 
