@@ -17,13 +17,15 @@ test('kv: create index then data', function (t) {
 
   var hyperkv = indexer({
     cores: multi,
-    map: function (node, feed, seq, next) {
-      var entry = {
-        id: feed.key.toString('hex') + '@' + seq,
-        key: node.key,
-        links: node.links
-      }
-      kv.batch([entry], next)
+    batch: function (nodes, feed, seq, next) {
+      var batch = nodes.map(function (node) {
+        return {
+          id: feed.key.toString('hex') + '@' + seq,
+          key: node.key,
+          links: node.links
+        }
+      })
+      kv.batch(batch, next)
     }
   })
 

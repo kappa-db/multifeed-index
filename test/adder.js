@@ -15,7 +15,7 @@ test('empty + ready called', function (t) {
   var version = null
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
+    batch: function (nodes, feed, seq, next) {
       next()
     },
     fetchState: function (cb) { cb(null, version) },
@@ -37,8 +37,8 @@ test('adder', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') sum += node.value
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) { sum += node.value })
       next()
 
       if (!--pending) done()
@@ -75,7 +75,7 @@ test('adder: picks up where it left off', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
+    batch: function (nodes, feed, seq, next) {
       next()
       if (!--pending) done()
     },
@@ -99,8 +99,8 @@ test('adder: picks up where it left off', function (t) {
       var version2 = version.slice()
       index({
         cores: db,
-        map: function (node, feed, seq, next) {
-          if (typeof node.value === 'number') sum += node.value
+        batch: function (nodes, feed, seq, next) {
+          nodes.forEach(function (node) { sum += node.value })
 
           if (!--pending) {
             t.equals(sum, 7, 'processed only last item')
@@ -125,8 +125,8 @@ test('adder /w slow versions', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') sum += node.value
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) { sum += node.value })
       next()
     },
     fetchState: function (cb) {
@@ -166,8 +166,8 @@ test('adder /w many concurrent PUTs', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') sum += node.value
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) { sum += node.value })
       next()
 
       if (!--pending) done()
@@ -224,8 +224,8 @@ test('adder /w index made AFTER db population', function (t) {
   function done () {
     var idx = index({
       cores: db,
-      map: function (node, feed, seq, next) {
-        if (typeof node.value === 'number') sum += node.value
+      batch: function (nodes, feed, seq, next) {
+        nodes.forEach(function (node) { sum += node.value })
         next()
       },
       fetchState: function (cb) { cb(null, version) },
@@ -260,16 +260,18 @@ test('adder /w async storage', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') {
-        getSum(function (theSum) {
-          theSum += node.value
-          setSum(theSum, function () {
-            next()
-            if (!--pending) done()
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) {
+        if (typeof node.value === 'number') {
+          getSum(function (theSum) {
+            theSum += node.value
+            setSum(theSum, function () {
+              next()
+              if (!--pending) done()
+            })
           })
-        })
-      }
+        }
+      })
     },
     fetchState: function (cb) { cb(null, version) },
     storeState: function (s, cb) { version = s; cb(null) }
@@ -313,15 +315,17 @@ test('adder /w async storage: ready', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') {
-        getSum(function (theSum) {
-          theSum += node.value
-          setSum(theSum, function () {
-            next()
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) {
+        if (typeof node.value === 'number') {
+          getSum(function (theSum) {
+            theSum += node.value
+            setSum(theSum, function () {
+              next()
+            })
           })
-        })
-      }
+        }
+      })
     },
     fetchState: function (cb) { cb(null, version) },
     storeState: function (s, cb) { version = s; cb(null) }
@@ -361,8 +365,10 @@ test('fs: adder', function (t) {
 
   var idx = index({
     cores: db,
-    map: function (node, feed, seq, next) {
-      if (typeof node.value === 'number') sum += node.value
+    batch: function (nodes, feed, seq, next) {
+      nodes.forEach(function (node) {
+        if (typeof node.value === 'number') sum += node.value
+      })
       next()
     },
     fetchState: function (cb) {
@@ -411,8 +417,10 @@ test('adder + sync', function (t) {
     var pending = 4
     var idx1 = index({
       cores: db1,
-      map: function (node, feed, seq, next) {
-        if (typeof node.value === 'number') sum1 += node.value
+      batch: function (nodes, feed, seq, next) {
+        nodes.forEach(function (node) {
+          if (typeof node.value === 'number') sum1 += node.value
+        })
         next()
 
         if (!--pending) done()
@@ -423,8 +431,10 @@ test('adder + sync', function (t) {
 
     var idx2 = index({
       cores: db2,
-      map: function (node, feed, seq, next) {
-        if (typeof node.value === 'number') sum2 += node.value
+      batch: function (nodes, feed, seq, next) {
+        nodes.forEach(function (node) {
+          if (typeof node.value === 'number') sum2 += node.value
+        })
         next()
 
         if (!--pending) done()

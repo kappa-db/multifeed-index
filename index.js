@@ -9,14 +9,14 @@ function Indexer (opts) {
 
   if (!opts) throw new Error('missing opts param')
   if (!opts.cores) throw new Error('missing opts param "cores"')
-  if (!opts.map) throw new Error('missing opts param "map"')
+  if (!opts.batch) throw new Error('missing opts param "batch"')
   if (xor(!!opts.storeState, !!opts.fetchState)) throw new Error('either neither or both of {opts.storeState, opts.fetchState} must be provided')
   // TODO: support forward & backward indexing from newest
   // TODO: support opts.batchSize
   // TODO: support batch indexing
 
   this._cores = opts.cores
-  this._map = opts.map
+  this._batch = opts.batch
   this._ready = false
 
   this._at = null
@@ -109,7 +109,7 @@ Indexer.prototype._run = function () {
         var n = i
         feeds[n].get(seq, function (err, node) {
           if (err) throw err // TODO: handle this better
-          self._map(node, feeds[n], seq, function () {
+          self._batch([node], feeds[n], seq, function () {
             self._at[n].max++
             self._storeState(State.serialize(self._at), done)
           })
