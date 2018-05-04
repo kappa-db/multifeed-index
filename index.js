@@ -109,7 +109,6 @@ Indexer.prototype._run = function () {
       var at = self._at[i].max
       var to = Math.min(feeds[i].length, at + self._maxBatch)
       if (at < to) {
-        pending++
         didWork = true
         var toCollect = to - at
         for (var seq = at; seq < to; seq++) {
@@ -120,7 +119,7 @@ Indexer.prototype._run = function () {
             seqs.push(seq)
             if (!toCollect) {
               self._batch(nodes, feeds[i], seqs, function () {
-                self._at[i].max++
+                self._at[i].max += nodes.length
                 self._storeState(State.serialize(self._at), done)
               })
             }
@@ -130,8 +129,6 @@ Indexer.prototype._run = function () {
         collect(i + 1)
       }
     })(0)
-
-    done()
 
     function done () {
       if (!--pending) {
