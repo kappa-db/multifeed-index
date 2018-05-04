@@ -25,13 +25,15 @@ var kv = umkv(memdb())
 
 var hyperkv = indexer({
   cores: multi,
-  batch: function (nodes, feed, seq, next) {
-    var entry = {
-      id: feed.key.toString('hex') + '@' + seq,
-      key: node.key,
-      links: node.links
-    }
-    kv.batch([entry], next)
+  batch: function (nodes, feed, seqs, next) {
+    var ops = nodes.map(function (node, i) {
+      return {
+        id: feed.key.toString('hex') + '@' + seqs[i],
+        key: node.key,
+        links: node.links
+      }
+    })
+    kv.batch(ops, next)
   }
 })
 
@@ -87,7 +89,7 @@ Required `opts` include:
 - `cores`: a [multi-hypercore](https://github.com/noffle/multi-hypercore)
   instance
 - `batch`: a mapping function, to be called on 1+ nodes at a time in the
-  hypercores of `cores`. Expects params `(nodes, feed, seq, next)`. `next`
+  hypercores of `cores`. Expects params `(nodes, feed, seqs, next)`. `next`
   should be called when you are done processing.
 
 Optional `opts` include:
