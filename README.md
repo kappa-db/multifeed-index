@@ -25,6 +25,7 @@ var kv = umkv(memdb())
 
 var hyperkv = indexer({
   cores: multi,
+  maxBatch: 5,
   batch: function (nodes, feed, seqs, next) {
     var ops = nodes.map(function (node, i) {
       return {
@@ -93,6 +94,8 @@ Required `opts` include:
 
 Optional `opts` include:
 
+- `maxBatch`: maximum batch size of nodes to process in one `batch` call.
+  Defaults to `1`.
 - `storeState`: Function of the form `function (state, cb)`. Called by the
   indexer when there is a new indexing state to save. The user can store this
   Buffer object whereever/however they'd like.
