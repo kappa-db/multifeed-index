@@ -2,7 +2,7 @@
   "name": "multifeed-index",
   "description": "build an index over a set of hypercores",
   "author": "noffle",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "test": "standard && tape test/*.js",
