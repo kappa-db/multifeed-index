@@ -1,6 +1,6 @@
 var test = require('tape')
 var hypercore = require('hypercore')
-var multicore = require('multi-hypercore')
+var multifeed = require('multifeed')
 var ram = require('random-access-memory')
 var index = require('..')
 var tmp = require('os').tmpdir
@@ -11,7 +11,7 @@ var versions = require('../lib/state')
 test('empty + ready called', function (t) {
   t.plan(1)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
   var version = null
   var idx = index({
     cores: db,
@@ -30,7 +30,7 @@ test('empty + ready called', function (t) {
 test('adder', function (t) {
   t.plan(7)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -68,7 +68,7 @@ test('adder', function (t) {
 test('adder: picks up where it left off', function (t) {
   t.plan(6)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var version = null
   var pending = 3
@@ -118,7 +118,7 @@ test('adder: picks up where it left off', function (t) {
 test('adder /w slow versions', function (t) {
   t.plan(7)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -159,7 +159,7 @@ test('adder /w slow versions', function (t) {
 test('adder /w many concurrent PUTs', function (t) {
   t.plan(204)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -201,7 +201,7 @@ test('adder /w many concurrent PUTs', function (t) {
 test('adder /w index made AFTER db population', function (t) {
   t.plan(204)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -243,7 +243,7 @@ test('adder /w index made AFTER db population', function (t) {
 test('adder /w async storage', function (t) {
   t.plan(7)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -298,7 +298,7 @@ test('adder /w async storage', function (t) {
 test('adder /w async storage: ready', function (t) {
   t.plan(7)
 
-  var db = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -358,7 +358,7 @@ test('fs: adder', function (t) {
 
   var id = String(Math.random()).substring(2)
   var dir = path.join(tmp(), 'hyperdb-index-test-' + id)
-  var db = multicore(hypercore, dir, { valueEncoding: 'json' })
+  var db = multifeed(hypercore, dir, { valueEncoding: 'json' })
 
   var sum = 0
   var version = null
@@ -479,9 +479,9 @@ test('adder + sync', function (t) {
 })
 
 function createTwo (cb) {
-  var a = multicore(hypercore, ram, {valueEncoding: 'json'})
+  var a = multifeed(hypercore, ram, {valueEncoding: 'json'})
   a.ready(function () {
-    var b = multicore(hypercore, ram, {valueEncoding: 'json'})
+    var b = multifeed(hypercore, ram, {valueEncoding: 'json'})
     b.ready(function () {
       cb(a, b)
     })

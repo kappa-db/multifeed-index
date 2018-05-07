@@ -1,6 +1,6 @@
 var test = require('tape')
 var hypercore = require('hypercore')
-var multicore = require('multi-hypercore')
+var multifeed = require('multifeed')
 var indexer = require('..')
 var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
@@ -11,7 +11,7 @@ var memdb = require('memdb')
 test('kv: create index then data', function (t) {
   t.plan(10)
 
-  var multi = multicore(hypercore, ram, { valueEncoding: 'json' })
+  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var kv = umkv(memdb())
 
