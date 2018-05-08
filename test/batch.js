@@ -22,11 +22,11 @@ test('batch size', function (t) {
     var version = null
     var sum = 0
     var idx = index({
-      cores: db,
+      log: db,
       maxBatch: 10,
-      batch: function (nodes, feed, seqs, next) {
+      batch: function (nodes, next) {
         t.equals(nodes.length, 3, 'correct batch size')
-        nodes.forEach(function (node) { sum += node.value })
+        nodes.forEach(function (node) { sum += node.value.value })
         next()
       },
       fetchState: function (cb) { cb(null, version) },

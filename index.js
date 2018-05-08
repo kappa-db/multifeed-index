@@ -8,12 +8,12 @@ function Indexer (opts) {
   if (!(this instanceof Indexer)) return new Indexer(opts)
 
   if (!opts) throw new Error('missing opts param')
-  if (!opts.cores) throw new Error('missing opts param "cores"')
+  if (!opts.log) throw new Error('missing opts param "log"')
   if (!opts.batch) throw new Error('missing opts param "batch"')
   if (xor(!!opts.storeState, !!opts.fetchState)) throw new Error('either neither or both of {opts.storeState, opts.fetchState} must be provided')
   // TODO: support forward & backward indexing from newest
 
-  this._cores = opts.cores
+  this._log = opts.log
   this._batch = opts.batch
   this._ready = false
   this._maxBatch = opts.maxBatch || 1
@@ -35,12 +35,12 @@ function Indexer (opts) {
 
   var self = this
 
-  this._cores.ready(function () {
+  this._log.ready(function () {
     self._ready = true
     self._run()
   })
 
-  this._cores.on('feed', function (feed, idx) {
+  this._log.on('feed', function (feed, idx) {
     feed.on('append', function () {
       self._run()
     })
@@ -70,7 +70,7 @@ Indexer.prototype._run = function () {
     this._fetchState(function (err, state) {
       if (err) throw err // TODO: how to bubble up errors? eventemitter?
       if (!state) {
-        self._at = self._cores.feeds().map(function (feed) {
+        self._at = self._log.feeds().map(function (feed) {
           return {
             key: feed.key,
             min: 0,
@@ -81,7 +81,7 @@ Indexer.prototype._run = function () {
         self._at = State.deserialize(state)
       }
 
-      self._cores.feeds().forEach(function (feed) {
+      self._log.feeds().forEach(function (feed) {
         feed.on('append', function () {
           self._run()
         })
@@ -94,9 +94,8 @@ Indexer.prototype._run = function () {
   }
 
   function work () {
-    var feeds = self._cores.feeds()
+    var feeds = self._log.feeds()
     var nodes = []
-    var seqs = []
 
     ;(function collect (i) {
       if (i >= feeds.length) return done()
@@ -115,10 +114,13 @@ Indexer.prototype._run = function () {
           feeds[i].get(seq, function (seq, err, node) {
             if (err) throw err // TODO: handle this better
             toCollect--
-            nodes.push(node)
-            seqs.push(seq)
+            nodes.push({
+              key: feeds[i].key.toString('hex'),
+              seq: seq,
+              value: node
+            })
             if (!toCollect) {
-              self._batch(nodes, feeds[i], seqs, function () {
+              self._batch(nodes, function () {
                 self._at[i].max += nodes.length
                 self._storeState(State.serialize(self._at), done)
               })

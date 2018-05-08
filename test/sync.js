@@ -23,9 +23,9 @@ test('multiple feeds', function (t) {
       w.append({value: 3}, function (err) { t.error(err); sync() })
     })
 
-    function batchFn (sumId, nodes, feed, seqs, next) {
+    function batchFn (sumId, nodes, next) {
       nodes.forEach(function (node) {
-        if (typeof node.value === 'number') sums[sumId] += node.value
+        if (typeof node.value.value === 'number') sums[sumId] += node.value.value
       })
       next()
     }
@@ -39,14 +39,14 @@ test('multiple feeds', function (t) {
 
     function doIndex () {
       var idx1 = index({
-        cores: a,
+        log: a,
         maxBatch: 50,
         batch: batchFn.bind(null, 0),
         fetchState: function (cb) { cb(null, version1) },
         storeState: function (s, cb) { version1 = s; cb(null) }
       })
       var idx2 = index({
-        cores: b,
+        log: b,
         maxBatch: 50,
         batch: batchFn.bind(null, 1),
         fetchState: function (cb) { cb(null, version2) },

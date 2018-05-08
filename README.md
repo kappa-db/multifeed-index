@@ -24,14 +24,14 @@ var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 var kv = umkv(memdb())
 
 var hyperkv = indexer({
-  cores: multi,
+  log: multi,
   maxBatch: 5,
-  batch: function (nodes, feed, seqs, next) {
-    var ops = nodes.map(function (node, i) {
+  batch: function (nodes, next) {
+    var ops = nodes.map(function (node) {
       return {
-        id: feed.key.toString('hex') + '@' + seqs[i],
-        key: node.key,
-        links: node.links
+        id: node.key.toString('hex') + '@' + node.seq,
+        key: node.value.key,
+        links: node.value.links
       }
     })
     kv.batch(ops, next)
@@ -87,10 +87,20 @@ id-2 9736a3ff7ae522ca80b7612fed5aefe8cfb40e0a43199174e47d78703abaa22f@1
 
 Required `opts` include:
 
-- `cores`: a [multifeed](https://github.com/noffle/multifeed) instance
+- `log`: a [multifeed](https://github.com/noffle/multifeed) instance
 - `batch`: a mapping function, to be called on 1+ nodes at a time in the
-  hypercores of `cores`. Expects params `(nodes, feed, seqs, next)`. `next`
-  should be called when you are done processing.
+  hypercores of `log`.
+
+The `batch` function expects params `(nodes, next)`. `next` should be called
+when you are done processing. Each `node` of `nodes` is of the form
+
+```js
+{
+  key: 'hex-string-of-hypercore-public-key',
+  seq: 14,
+  value: <whatever value is in the hypercore at this feed + sequence number>
+}
+```
 
 Optional `opts` include:
 

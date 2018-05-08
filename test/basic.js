@@ -6,8 +6,6 @@ var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
 var memdb = require('memdb')
 
-// TODO: test creating the index AFTER the data has been created
-
 test('kv: create index then data', function (t) {
   t.plan(10)
 
@@ -16,13 +14,13 @@ test('kv: create index then data', function (t) {
   var kv = umkv(memdb())
 
   var hyperkv = indexer({
-    cores: multi,
-    batch: function (nodes, feed, seq, next) {
+    log: multi,
+    batch: function (nodes, next) {
       var batch = nodes.map(function (node) {
         return {
-          id: feed.key.toString('hex') + '@' + seq,
-          key: node.key,
-          links: node.links
+          id: node.key.toString('hex') + '@' + node.seq,
+          key: node.value.key,
+          links: node.value.links
         }
       })
       kv.batch(batch, next)
