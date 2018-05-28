@@ -41,10 +41,12 @@ function Indexer (opts) {
   })
 
   this._log.on('feed', function (feed, idx) {
-    feed.on('append', function () {
-      self._run()
+    feed.ready(function () {
+      feed.on('append', function () {
+        self._run()
+      })
+      if (self._ready) self._run()
     })
-    if (self._ready) self._run()
   })
 }
 
@@ -107,6 +109,7 @@ Indexer.prototype._run = function () {
       // prefer to process forward
       var at = self._at[i].max
       var to = Math.min(feeds[i].length, at + self._maxBatch)
+
       if (at < to) {
         didWork = true
         var toCollect = to - at
