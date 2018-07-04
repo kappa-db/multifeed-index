@@ -43,7 +43,7 @@ test('kv merge fork', function (t) {
       t.error(err)
       w.append({ id: 1, value: 100, links: [] }, function (err) {
         t.error(err)
-        sync(a,b,populateSecond)
+        sync(a, b, populateSecond)
       })
     })
   }
@@ -54,14 +54,14 @@ test('kv merge fork', function (t) {
       t.error(err)
       w.append({ id: 2, value: 200, links: [1] }, function (err) {
         t.error(err)
-        if (--pending === 0) sync(a,b,readyCheckForked)
+        if (--pending === 0) sync(a, b, readyCheckForked)
       })
     })
     b.writer(function (err, w) {
       t.error(err)
       w.append({ id: 3, value: 300, links: [1] }, function (err) {
         t.error(err)
-        if (--pending === 0) sync(a,b,readyCheckForked)
+        if (--pending === 0) sync(a, b, readyCheckForked)
       })
     })
   }
@@ -76,21 +76,21 @@ test('kv merge fork', function (t) {
     var pending = 2
     akv.get('X', function (err, heads) {
       t.error(err)
-      t.deepEqual(heads.sort(), ['2','3'])
+      t.deepEqual(heads.sort(), ['2', '3'])
       if (--pending === 0) populateThird()
     })
     bkv.get('X', function (err, heads) {
       t.error(err)
-      t.deepEqual(heads.sort(), ['2','3'])
+      t.deepEqual(heads.sort(), ['2', '3'])
       if (--pending === 0) populateThird()
     })
   }
   function populateThird () {
     a.writer(function (err, w) {
       t.error(err)
-      w.append({ id: 4, value: 400, links: [2,3] }, function (err) {
+      w.append({ id: 4, value: 400, links: [2, 3] }, function (err) {
         t.error(err)
-        sync(a,b,readyCheckFinal)
+        sync(a, b, readyCheckFinal)
       })
     })
   }
