@@ -72,8 +72,9 @@ Indexer.prototype._run = function () {
     this._fetchState(function (err, state) {
       if (err) throw err // TODO: how to bubble up errors? eventemitter?
       if (!state) {
-        self._at = self._log.feeds().map(function (feed) {
-          return {
+        self._at = {}
+        self._log.feeds().forEach(function (feed) {
+          self._at[feed.key.toString('hex')] = {
             key: feed.key,
             min: 0,
             max: 0
@@ -101,13 +102,14 @@ Indexer.prototype._run = function () {
 
     ;(function collect (i) {
       if (i >= feeds.length) return done()
+      var key = feeds[i].key.toString('hex')
 
-      if (self._at[i] === undefined) {
-        self._at.push({ key: feeds[i].key, min: 0, max: 0 })
+      if (self._at[key] === undefined) {
+        self._at[key] = { key: feeds[i].key, min: 0, max: 0 }
       }
 
       // prefer to process forward
-      var at = self._at[i].max
+      var at = self._at[key].max
       var to = Math.min(feeds[i].length, at + self._maxBatch)
 
       if (at < to) {
@@ -124,7 +126,7 @@ Indexer.prototype._run = function () {
             })
             if (!toCollect) {
               self._batch(nodes, function () {
-                self._at[i].max += nodes.length
+                self._at[key].max += nodes.length
                 self._storeState(State.serialize(self._at), done)
               })
             }
