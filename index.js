@@ -127,7 +127,10 @@ Indexer.prototype._run = function () {
             if (!toCollect) {
               self._batch(nodes, function () {
                 self._at[key].max += nodes.length
-                self._storeState(State.serialize(self._at), done)
+                self._storeState(State.serialize(self._at), function () {
+                  self.emit('indexed', nodes)
+                  done()
+                })
               })
             }
           }.bind(null, seq))

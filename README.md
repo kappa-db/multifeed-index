@@ -122,6 +122,10 @@ Registers the callback `cb()` to fire when the indexes have "caught up" to the
 latest known change. The `cb()` function fires exactly once. You may call
 `index.ready()` multiple times with different functions.
 
+### index.on('indexed', function (nodes) {})
+
+Event emitted when entries have finished being indexed.
+
 ## Install
 
 ```
