@@ -67,3 +67,35 @@ test('kv: create index then data', function (t) {
     })
   })
 })
+
+test('indexed event', function (t) {
+  t.plan(3)
+
+  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+
+  var entries = [1, 2, 3, 4, 5, 6]
+  multi.writer(function (err, w) {
+    w.append(entries, function (err) {
+      t.error(err)
+      w.append(10, function (err) {
+        t.error(err)
+        counter.ready(function () {
+          t.equals(count, 7, 'count matches')
+        })
+      })
+    })
+  })
+
+  var count = 0
+
+  var counter = indexer({
+    log: multi,
+    batch: function (nodes, next) {
+      next()
+    }
+  })
+
+  counter.on('indexed', function (msgs) {
+    count += msgs.length
+  })
+})
