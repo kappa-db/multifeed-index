@@ -48,6 +48,8 @@ function Indexer (opts) {
       if (self._ready) self._run()
     })
   })
+
+  this.setMaxListeners(128)
 }
 
 inherits(Indexer, EventEmitter)
