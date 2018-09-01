@@ -69,12 +69,13 @@ test('kv: create index then data', function (t) {
 })
 
 test('indexed event', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
   var entries = [1, 2, 3, 4, 5, 6]
   multi.writer(function (err, w) {
+    t.error(err)
     w.append(entries, function (err) {
       t.error(err)
       w.append(10, function (err) {
