@@ -117,18 +117,29 @@ Indexer.prototype._run = function () {
       if (at < to) {
         didWork = true
         var toCollect = to - at
+        var processed = 0
         for (var seq = at; seq < to; seq++) {
-          feeds[i].get(seq, function (seq, err, node) {
-            if (err) throw err // TODO: handle this better
+          feeds[i].get(seq, {timeout: 500}, function (seq, err, node) {
+            var found = true
+            if (err) {
+              if (err.code === 'ETIMEDOUT') {
+                found = false
+              } else {
+                throw err // TODO: handle this better
+              }
+            }
             toCollect--
-            nodes.push({
-              key: feeds[i].key.toString('hex'),
-              seq: seq,
-              value: node
-            })
+            processed++
+            if (found) {
+              nodes.push({
+                key: feeds[i].key.toString('hex'),
+                seq: seq,
+                value: node
+              })
+            }
             if (!toCollect) {
               self._batch(nodes, function () {
-                self._at[key].max += nodes.length
+                self._at[key].max += processed
                 self._storeState(State.serialize(self._at), function () {
                   self.emit('indexed', nodes)
                   done()
