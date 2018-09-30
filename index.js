@@ -45,6 +45,9 @@ function Indexer (opts) {
       feed.on('append', function () {
         self._run()
       })
+      feed.on('download', function () {
+        self._run()
+      })
       if (self._ready) self._run()
     })
   })
@@ -115,18 +118,14 @@ Indexer.prototype._run = function () {
       var to = Math.min(feeds[i].length, at + self._maxBatch)
 
       if (at < to) {
-        didWork = true
         var toCollect = to - at
         var processed = 0
         for (var seq = at; seq < to; seq++) {
-          feeds[i].get(seq, {timeout: 500}, function (seq, err, node) {
+          feeds[i].get(seq, {wait: false}, function (seq, err, node) {
             var found = true
             if (err) {
-              if (err.code === 'ETIMEDOUT') {
-                found = false
-              } else {
-                throw err // TODO: handle this better
-              }
+              found = false
+              return collect(i+1)
             }
             toCollect--
             processed++
@@ -138,6 +137,7 @@ Indexer.prototype._run = function () {
               })
             }
             if (!toCollect) {
+              didWork = true
               self._batch(nodes, function () {
                 self._at[key].max += processed
                 self._storeState(State.serialize(self._at), function () {
