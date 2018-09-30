@@ -125,7 +125,7 @@ Indexer.prototype._run = function () {
             var found = true
             if (err) {
               found = false
-              return collect(i+1)
+              return collect(i + 1)
             }
             toCollect--
             processed++
