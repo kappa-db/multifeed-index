@@ -120,11 +120,14 @@ Indexer.prototype._run = function () {
       if (at < to) {
         var toCollect = to - at
         var processed = 0
+        var bailed = false
         for (var seq = at; seq < to; seq++) {
           feeds[i].get(seq, {wait: false}, function (seq, err, node) {
+            if (bailed) return
             var found = true
             if (err) {
               found = false
+              bailed = true
               return collect(i + 1)
             }
             toCollect--
