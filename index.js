@@ -119,14 +119,10 @@ Indexer.prototype._run = function () {
         var toCollect = to - at
         var processed = 0
         for (var seq = at; seq < to; seq++) {
-          feeds[i].get(seq, {timeout: 500}, function (seq, err, node) {
+          feeds[i].get(seq, {wait: false}, function (seq, err, node) {
             var found = true
             if (err) {
-              if (err.code === 'ETIMEDOUT') {
-                found = false
-              } else {
-                throw err // TODO: handle this better
-              }
+              found = false
             }
             toCollect--
             processed++
