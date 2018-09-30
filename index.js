@@ -93,6 +93,9 @@ Indexer.prototype._run = function () {
         feed.on('append', function () {
           self._run()
         })
+        feed.on('download', function () {
+          self._run()
+        })
       })
 
       work()
