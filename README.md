@@ -24,7 +24,7 @@ var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 var kv = umkv(memdb())
 
 var kvView = indexer({
-  version: 1,  // setting a larger number will cause the index to be purged and rebuilt
+  version: 1,  // setting a different number will cause the index to be purged and rebuilt
   log: multi,
   maxBatch: 5,
   batch: function (nodes, next) {
@@ -91,6 +91,13 @@ Required `opts` include:
 - `log`: a [multifeed](https://github.com/noffle/multifeed) instance
 - `batch`: a mapping function, to be called on 1+ nodes at a time in the
   hypercores of `log`.
+- `storeState`: Function of the form `function (state, cb)`. Called by the
+  indexer when there is a new indexing state to save. The user can store this
+  Buffer object whereever/however they'd like.
+- `fetchState`: Function of the form `function (cb)`. Called by the indexer to
+  seed the indexing process when the indexer is created. Expects `cb` to be
+  called with `(err, state)`, where `state` is a Buffer that was previously
+  given to `opts.storeState`.
 
 The `batch` function expects params `(nodes, next)`. `next` should be called
 when you are done processing. Each `node` of `nodes` is of the form
@@ -108,19 +115,12 @@ Optional `opts` include:
 - `version`: the version of the index. If increased, any indexes built with an
   earlier version will be purged and rebuilt. This is useful for when you
   change the data format of the index and want all peers to rebuild to use this
-  format. Defaults to `null`, and **any** number used in the future will be
-  larger and thus trigger index regeneration.
+  format. Defaults to `1`.
 - `maxBatch`: maximum batch size of nodes to process in one `batch` call.
   Defaults to `1`.
-- `storeState`: Function of the form `function (state, cb)`. Called by the
-  indexer when there is a new indexing state to save. The user can store this
-  Buffer object whereever/however they'd like.
-- `fetchState`: Function of the form `function (cb)`. Called by the indexer to
-  seed the indexing process when the indexer is created. Expects `cb` to be
-  called with `(err, state)`, where `state` is a Buffer that was previously
-  given to `opts.storeState`.
-
-If neither of the above are given, state is stored in memory.
+- `clearIndex`: Function of the form `function (cb)`. Called by the indexer
+  when a new version for the index has been passed in (via `opts.version`) and
+  the index needs to be cleared & regenerated.
 
 ### index.ready(cb)
 

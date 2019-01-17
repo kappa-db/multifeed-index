@@ -10,17 +10,21 @@ function Indexer (opts) {
   if (!opts) throw new Error('missing opts param')
   if (!opts.log) throw new Error('missing opts param "log"')
   if (!opts.batch) throw new Error('missing opts param "batch"')
-  if (xor(!!opts.storeState, !!opts.fetchState)) throw new Error('either neither or both of {opts.storeState, opts.fetchState} must be provided')
+  if (!allOrNone(!!opts.storeState, !!opts.fetchState)) {
+    throw new Error('either none or all of (opts.storeState, opts.fetchState) must be provided')
+  }
+  if (!unset(opts.version) && typeof version !== 'number') throw new Error('opts.version must be a number')
   // TODO: support forward & backward indexing from newest
 
+  this._version = unset(opts.version) ? 1 : opts.version
   this._log = opts.log
   this._batch = opts.batch
   this._ready = false
-  this._maxBatch = opts.maxBatch || 1
+  this._maxBatch = unset(opts.maxBatch) ? 1 : opts.maxBatch
 
   this._at = null
   var state
-  if (!opts.storeState && !opts.fetchState) {
+  if (!opts.storeState && !opts.fetchState && !opts.clearIndex) {
     this._storeState = function (buf, cb) {
       state = buf
       process.nextTick(cb)
@@ -28,17 +32,50 @@ function Indexer (opts) {
     this._fetchState = function (cb) {
       process.nextTick(cb, null, state)
     }
+    this._clearIndex = function (cb) {
+      state = null
+      process.nextTick(cb)
+    }
   } else {
     this._storeState = opts.storeState
     this._fetchState = opts.fetchState
+    this._clearIndex = opts.clearIndex || null
   }
 
   var self = this
 
   this._log.ready(function () {
+    self._fetchState(function (err, state) {
+      if (err) {
+        self.emit('error', err)
+        return
+      }
+      if (!state) {
+        start()
+        return
+      }
+      state = State.deserialize(state)
+
+      // Wipe existing index if versions don't match (and there's a 'clearIndex' implementation)
+      var storedVersion = state.version
+      if (storedVersion !== self._version && self._clearIndex) {
+        self._clearIndex(function (err) {
+          if (err) {
+            self.emit('error', err)
+          } else {
+            start()
+          }
+        })
+      } else {
+        start()
+      }
+    })
+  })
+
+  function start () {
     self._ready = true
     self._run()
-  })
+  }
 
   this._log.on('feed', function (feed, idx) {
     feed.ready(function () {
@@ -172,6 +209,10 @@ Indexer.prototype._run = function () {
   }
 }
 
-function xor (a, b) {
-  return (a && !b) || (!a && b)
+function allOrNone (a, b) {
+  return (!!a && !!b) || (!a && !b)
+}
+
+function unset (x) {
+  return x === null || x === undefined
 }

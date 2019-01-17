@@ -19,7 +19,8 @@ test('empty + ready called', function (t) {
       next()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; cb(null) }
   })
 
   idx.ready(function () {
@@ -44,7 +45,8 @@ test('adder', function (t) {
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
@@ -80,7 +82,8 @@ test('adder: picks up where it left off', function (t) {
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; cb(null) }
   })
 
   var writer
@@ -108,7 +111,8 @@ test('adder: picks up where it left off', function (t) {
           next()
         },
         fetchState: function (cb) { cb(null, version2) },
-        storeState: function (s, cb) { version2 = s; cb(null) }
+        storeState: function (s, cb) { version2 = s; cb(null) },
+        clearIndex: function (cb) { version = null; cb(null) }
       })
       writer.append({value: 7}, function (err) { t.error(err, 'appended 7') })
     })
@@ -132,7 +136,8 @@ test('adder /w slow versions', function (t) {
     fetchState: function (cb) {
       setTimeout(function () { cb(null, version) }, 100)
     },
-    storeState: function (s, cb) { version = s; setTimeout(cb, 100) }
+    storeState: function (s, cb) { version = s; setTimeout(cb, 100) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
@@ -173,7 +178,8 @@ test('adder /w many concurrent PUTs', function (t) {
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 200
@@ -229,7 +235,8 @@ test('adder /w index made AFTER db population', function (t) {
         next()
       },
       fetchState: function (cb) { cb(null, version) },
-      storeState: function (s, cb) { version = s; cb(null) }
+      storeState: function (s, cb) { version = s; cb(null) },
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
     idx.ready(function () {
       var finalVersion = values(versions.deserialize(version).keys)
@@ -274,7 +281,8 @@ test('adder /w async storage', function (t) {
       })
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
@@ -328,7 +336,8 @@ test('adder /w async storage: ready', function (t) {
       })
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   db.writer(function (err, w) {
@@ -376,7 +385,8 @@ test('fs: adder', function (t) {
     },
     storeState: function (s, cb) {
       setTimeout(function () { version = s; cb(null) }, 50)
-    }
+    },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 50
@@ -426,7 +436,8 @@ test('adder + sync', function (t) {
         if (!--pending) done()
       },
       fetchState: function (cb) { cb(null, version1) },
-      storeState: function (s, cb) { version1 = s; cb(null) }
+      storeState: function (s, cb) { version1 = s; cb(null) },
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
 
     var idx2 = index({
@@ -440,7 +451,8 @@ test('adder + sync', function (t) {
         if (!--pending) done()
       },
       fetchState: function (cb) { cb(null, version2) },
-      storeState: function (s, cb) { version2 = s; cb(null) }
+      storeState: function (s, cb) { version2 = s; cb(null) },
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
 
     db1.writer(function (err, w) {
