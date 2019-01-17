@@ -13,7 +13,7 @@ function Indexer (opts) {
   if (!allOrNone(!!opts.storeState, !!opts.fetchState)) {
     throw new Error('either none or all of (opts.storeState, opts.fetchState) must be provided')
   }
-  if (!unset(opts.version) && typeof version !== 'number') throw new Error('opts.version must be a number')
+  if (!unset(opts.version) && typeof opts.version !== 'number') throw new Error('opts.version must be a number')
   // TODO: support forward & backward indexing from newest
 
   this._version = unset(opts.version) ? 1 : opts.version
