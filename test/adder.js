@@ -57,7 +57,7 @@ test('adder', function (t) {
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 3)
       t.equal(sum, 30)
@@ -147,7 +147,7 @@ test('adder /w slow versions', function (t) {
     t.error(err)
     if (!--pending) {
       idx.ready(function () {
-        var finalVersion = values(versions.deserialize(version))
+        var finalVersion = values(versions.deserialize(version).keys)
         t.equal(finalVersion.length, 1)
         t.equal(finalVersion[0].max, 3)
         t.equal(sum, 30)
@@ -190,7 +190,7 @@ test('adder /w many concurrent PUTs', function (t) {
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
@@ -232,7 +232,7 @@ test('adder /w index made AFTER db population', function (t) {
       storeState: function (s, cb) { version = s; cb(null) }
     })
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
@@ -287,7 +287,7 @@ test('adder /w async storage', function (t) {
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 3)
       t.equal(sum, 30)
@@ -341,7 +341,7 @@ test('adder /w async storage: ready', function (t) {
           t.error(err)
           idx.ready(function () {
             getSum(function (theSum) {
-              var finalVersion = values(versions.deserialize(version))
+              var finalVersion = values(versions.deserialize(version).keys)
               t.equal(finalVersion.length, 1)
               t.equal(finalVersion[0].max, 3)
               t.equals(theSum, 30)
@@ -396,7 +396,7 @@ test('fs: adder', function (t) {
   function done (err) {
     t.error(err)
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(sum, expectedSum, 'sum of all nodes is as expected')
       t.equal(finalVersion[0].max, 50)
@@ -458,13 +458,13 @@ test('adder + sync', function (t) {
       replicate(db1, db2, function () {
         idx1.ready(function () {
           idx2.ready(function () {
-            var finalVersion = values(versions.deserialize(version1))
+            var finalVersion = values(versions.deserialize(version1).keys)
             t.equal(finalVersion.length, 2)
             t.equal(finalVersion[0].max, 3)
             t.equal(finalVersion[1].max, 1)
             t.equal(sum1, 39)
 
-            finalVersion = values(versions.deserialize(version2))
+            finalVersion = values(versions.deserialize(version2).keys)
             t.equal(finalVersion.length, 2)
             t.equal(finalVersion[0].max, 1)
             t.equal(finalVersion[1].max, 3)

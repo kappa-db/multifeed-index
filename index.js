@@ -86,7 +86,7 @@ Indexer.prototype._run = function () {
           }
         })
       } else {
-        self._at = State.deserialize(state)
+        self._at = State.deserialize(state).keys
       }
 
       self._log.feeds().forEach(function (feed) {
