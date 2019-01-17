@@ -23,7 +23,8 @@ var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
 var kv = umkv(memdb())
 
-var hyperkv = indexer({
+var kvView = indexer({
+  version: 1,  // setting a larger number will cause the index to be purged and rebuilt
   log: multi,
   maxBatch: 5,
   batch: function (nodes, next) {
@@ -59,7 +60,7 @@ multi.writer(function (_, w) {
       links: [id1]
     }, function (_, id2) {
       console.log('id-2', id2)
-      hyperkv.ready(function () {
+      kvView.ready(function () {
         kv.get('foo', function (_, res) {
           console.log(res)
         })
@@ -104,6 +105,11 @@ when you are done processing. Each `node` of `nodes` is of the form
 
 Optional `opts` include:
 
+- `version`: the version of the index. If increased, any indexes built with an
+  earlier version will be purged and rebuilt. This is useful for when you
+  change the data format of the index and want all peers to rebuild to use this
+  format. Defaults to `null`, and **any** number used in the future will be
+  larger and thus trigger index regeneration.
 - `maxBatch`: maximum batch size of nodes to process in one `batch` call.
   Defaults to `1`.
 - `storeState`: Function of the form `function (state, cb)`. Called by the
