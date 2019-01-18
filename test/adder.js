@@ -437,7 +437,7 @@ test('adder + sync', function (t) {
       },
       fetchState: function (cb) { cb(null, version1) },
       storeState: function (s, cb) { version1 = s; cb(null) },
-      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
+      clearIndex: function (cb) { version1 = null; sum1 = 0; cb(null) }
     })
 
     var idx2 = index({
@@ -452,7 +452,7 @@ test('adder + sync', function (t) {
       },
       fetchState: function (cb) { cb(null, version2) },
       storeState: function (s, cb) { version2 = s; cb(null) },
-      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
+      clearIndex: function (cb) { version1 = null; sum2 = 0; cb(null) }
     })
 
     db1.writer(function (err, w) {
