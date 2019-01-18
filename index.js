@@ -4,6 +4,13 @@ var State = require('./lib/state')
 
 module.exports = Indexer
 
+var Status = {
+  Indexing: 1,
+  Ready: 2,
+  Closing: 3,
+  Closed: 4
+}
+
 function Indexer (opts) {
   if (!(this instanceof Indexer)) return new Indexer(opts)
 
@@ -19,8 +26,8 @@ function Indexer (opts) {
   this._version = unset(opts.version) ? 1 : opts.version
   this._log = opts.log
   this._batch = opts.batch
-  this._ready = false
   this._maxBatch = unset(opts.maxBatch) ? 1 : opts.maxBatch
+  this._state = Status.Indexing
 
   this._at = null
   var state
@@ -73,7 +80,7 @@ function Indexer (opts) {
   })
 
   function start () {
-    self._ready = true
+    self._state = Status.Ready
     self._run()
   }
 
@@ -85,7 +92,7 @@ function Indexer (opts) {
       feed.on('download', function () {
         self._run()
       })
-      if (self._ready) self._run()
+      if (self._state === Status.Ready) self._run()
     })
   })
 
@@ -95,15 +102,15 @@ function Indexer (opts) {
 inherits(Indexer, EventEmitter)
 
 Indexer.prototype.ready = function (fn) {
-  if (this._ready) process.nextTick(fn)
+  if (this._state === Status.Ready || this._state === Status.Closed || this._state === Status.Closing) process.nextTick(fn)
   else this.once('ready', fn)
 }
 
 Indexer.prototype._run = function () {
-  if (!this._ready) return
+  if (this._state !== Status.Ready) return
   var self = this
 
-  this._ready = false
+  this._state = Status.Indexing
 
   var didWork = false
 
@@ -198,7 +205,7 @@ Indexer.prototype._run = function () {
 
     function done () {
       if (!--pending) {
-        self._ready = true
+        self._state = Status.Ready
         if (didWork) {
           self._run()
         } else {
