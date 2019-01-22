@@ -73,14 +73,13 @@ test('version: reopening index @ same version -> no re-index', function (t) {
         log: db,
         maxBatch: 10,
         batch: function (nodes, next) {
-          console.log('v1 batch', nodes.length)
           t.equals(nodes.length, 3, 'correct batch size')
           nodes.forEach(function (node) { sum += node.value.value })
           next()
         },
         fetchState: function (cb) { cb(null, version) },
         storeState: function (s, cb) { version = s; cb(null) },
-        clearIndex: function (cb) { console.log('CLEAR CALLED'); version = null; sum = 0; cb(null) }
+        clearIndex: function (cb) { version = null; sum = 0; cb(null) }
       })
 
       idx.ready(function () {
@@ -176,14 +175,13 @@ test('version: reopening index @ new version -> re-index', function (t) {
         log: db,
         maxBatch: 10,
         batch: function (nodes, next) {
-          console.log('v1 batch', nodes.length)
           t.equals(nodes.length, 3, 'correct batch size')
           nodes.forEach(function (node) { sum += node.value.value })
           next()
         },
         fetchState: function (cb) { cb(null, version) },
         storeState: function (s, cb) { version = s; cb(null) },
-        clearIndex: function (cb) { console.log('CLEAR CALLED'); version = null; sum = 0; cb(null) }
+        clearIndex: function (cb) { version = null; sum = 0; cb(null) }
       })
 
       idx.ready(function () {
@@ -203,14 +201,13 @@ test('version: reopening index @ new version -> re-index', function (t) {
       maxBatch: 10,
       batch: function (nodes, next) {
         batchCalls++
-        console.log('v2 batch')
         t.equals(nodes.length, 3, 'correct batch size')
         nodes.forEach(function (node) { sum += node.value.value })
         next()
       },
       fetchState: function (cb) { cb(null, version) },
       storeState: function (s, cb) { version = s; cb(null) },
-      clearIndex: function (cb) { console.log('CLEAR CALLED'); version = null; sum = 0; cb(null) }
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
 
     idx.ready(function () {
