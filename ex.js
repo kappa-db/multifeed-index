@@ -10,7 +10,7 @@ var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 var kv = umkv(memdb())
 
 var kvView = indexer({
-  version: 1,  // setting a different number will cause the index to be purged and rebuilt
+  version: 1, // setting a different number will cause the index to be purged and rebuilt
   log: multi,
   maxBatch: 5,
   batch: function (nodes, next) {
