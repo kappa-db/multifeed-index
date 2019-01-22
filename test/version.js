@@ -24,8 +24,8 @@ test('version: reopening index @ same version -> no re-index', function (t) {
   var version = null
   var sum = 0
 
-  index_v1(function () {
-    index_v2(function () {
+  indexV1(function () {
+    indexV2(function () {
       t.end()
     })
   })
@@ -65,7 +65,7 @@ test('version: reopening index @ same version -> no re-index', function (t) {
     }
   }
 
-  function index_v1 (cb) {
+  function indexV1 (cb) {
     var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
 
     writeData(db, function () {
@@ -89,7 +89,7 @@ test('version: reopening index @ same version -> no re-index', function (t) {
     })
   }
 
-  function index_v2 (cb) {
+  function indexV2 (cb) {
     var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
 
     var idx = index({
@@ -126,8 +126,8 @@ test('version: reopening index @ new version -> re-index', function (t) {
   var version = null
   var sum = 0
 
-  index_v1(function () {
-    index_v2(function () {
+  indexV1(function () {
+    indexV2(function () {
       t.end()
     })
   })
@@ -167,7 +167,7 @@ test('version: reopening index @ new version -> re-index', function (t) {
     }
   }
 
-  function index_v1 (cb) {
+  function indexV1 (cb) {
     var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
 
     writeData(db, function () {
@@ -191,7 +191,7 @@ test('version: reopening index @ new version -> re-index', function (t) {
     })
   }
 
-  function index_v2 (cb) {
+  function indexV2 (cb) {
     var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
 
     var batchCalls = 0
@@ -219,4 +219,3 @@ test('version: reopening index @ new version -> re-index', function (t) {
     })
   }
 })
-
