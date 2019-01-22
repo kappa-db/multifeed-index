@@ -1,23 +1,27 @@
 var hypercore = require('hypercore')
-var multicore = require('multi-hypercore')
+var multifeed = require('multifeed')
 var indexer = require('.')
 var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
 var memdb = require('memdb')
 
-var multi = multicore(hypercore, ram, { valueEncoding: 'json' })
+var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
 
 var kv = umkv(memdb())
 
-var hyperkv = indexer({
-  cores: multi,
-  map: function (node, feed, seq, next) {
-    var entry = {
-      id: feed.key.toString('hex') + '@' + seq,
-      key: node.key,
-      links: node.links
-    }
-    kv.batch([entry], next)
+var kvView = indexer({
+  version: 1,  // setting a different number will cause the index to be purged and rebuilt
+  log: multi,
+  maxBatch: 5,
+  batch: function (nodes, next) {
+    var ops = nodes.map(function (node) {
+      return {
+        id: node.key.toString('hex') + '@' + node.seq,
+        key: node.value.key,
+        links: node.value.links
+      }
+    })
+    kv.batch(ops, next)
   }
 })
 
@@ -42,7 +46,7 @@ multi.writer(function (_, w) {
       links: [id1]
     }, function (_, id2) {
       console.log('id-2', id2)
-      hyperkv.ready(function () {
+      kvView.ready(function () {
         kv.get('foo', function (_, res) {
           console.log(res)
         })
