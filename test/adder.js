@@ -19,7 +19,8 @@ test('empty + ready called', function (t) {
       next()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; cb(null) }
   })
 
   idx.ready(function () {
@@ -37,6 +38,7 @@ test('adder', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -44,23 +46,24 @@ test('adder', function (t) {
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
   db.writer(function (err, w) {
-    t.error(err)
-    w.append({value: 17}, function (err) { t.error(err) })
-    w.append({value: 12}, function (err) { t.error(err) })
-    w.append({value: 1}, function (err) { t.error(err) })
+    t.error(err, 'got writer')
+    w.append({value: 17}, function (err) { t.error(err, 'wrote 17') })
+    w.append({value: 12}, function (err) { t.error(err, 'wrote 12') })
+    w.append({value: 1}, function (err) { t.error(err, 'wrote 1') })
   })
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
-      t.equal(finalVersion.length, 1)
-      t.equal(finalVersion[0].max, 3)
-      t.equal(sum, 30)
+      var finalVersion = values(versions.deserialize(version).keys)
+      t.equal(finalVersion.length, 1, 'correct # of keys')
+      t.equal(finalVersion[0].max, 3, 'correct # of entries')
+      t.equal(sum, 30, 'correct sum')
     })
   }
 })
@@ -75,12 +78,14 @@ test('adder: picks up where it left off', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       next()
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; cb(null) }
   })
 
   var writer
@@ -99,6 +104,7 @@ test('adder: picks up where it left off', function (t) {
       var version2 = version.slice()
       index({
         log: db,
+        maxBatch: 1,
         batch: function (nodes, next) {
           nodes.forEach(function (node) { sum += node.value.value })
 
@@ -108,7 +114,8 @@ test('adder: picks up where it left off', function (t) {
           next()
         },
         fetchState: function (cb) { cb(null, version2) },
-        storeState: function (s, cb) { version2 = s; cb(null) }
+        storeState: function (s, cb) { version2 = s; cb(null) },
+        clearIndex: function (cb) { version = null; cb(null) }
       })
       writer.append({value: 7}, function (err) { t.error(err, 'appended 7') })
     })
@@ -125,6 +132,7 @@ test('adder /w slow versions', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -132,7 +140,8 @@ test('adder /w slow versions', function (t) {
     fetchState: function (cb) {
       setTimeout(function () { cb(null, version) }, 100)
     },
-    storeState: function (s, cb) { version = s; setTimeout(cb, 100) }
+    storeState: function (s, cb) { version = s; setTimeout(cb, 100) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
@@ -147,7 +156,7 @@ test('adder /w slow versions', function (t) {
     t.error(err)
     if (!--pending) {
       idx.ready(function () {
-        var finalVersion = values(versions.deserialize(version))
+        var finalVersion = values(versions.deserialize(version).keys)
         t.equal(finalVersion.length, 1)
         t.equal(finalVersion[0].max, 3)
         t.equal(sum, 30)
@@ -166,6 +175,7 @@ test('adder /w many concurrent PUTs', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -173,7 +183,8 @@ test('adder /w many concurrent PUTs', function (t) {
       if (!--pending) done()
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 200
@@ -190,7 +201,7 @@ test('adder /w many concurrent PUTs', function (t) {
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
@@ -224,15 +235,17 @@ test('adder /w index made AFTER db population', function (t) {
   function done () {
     var idx = index({
       log: db,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) { sum += node.value.value })
         next()
       },
       fetchState: function (cb) { cb(null, version) },
-      storeState: function (s, cb) { version = s; cb(null) }
+      storeState: function (s, cb) { version = s; cb(null) },
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 200)
       t.equal(sum, expectedSum)
@@ -260,6 +273,7 @@ test('adder /w async storage', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') {
@@ -274,7 +288,8 @@ test('adder /w async storage', function (t) {
       })
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 3
@@ -287,7 +302,7 @@ test('adder /w async storage', function (t) {
 
   function done () {
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(finalVersion[0].max, 3)
       t.equal(sum, 30)
@@ -315,6 +330,7 @@ test('adder /w async storage: ready', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') {
@@ -328,7 +344,8 @@ test('adder /w async storage: ready', function (t) {
       })
     },
     fetchState: function (cb) { cb(null, version) },
-    storeState: function (s, cb) { version = s; cb(null) }
+    storeState: function (s, cb) { version = s; cb(null) },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   db.writer(function (err, w) {
@@ -341,7 +358,7 @@ test('adder /w async storage: ready', function (t) {
           t.error(err)
           idx.ready(function () {
             getSum(function (theSum) {
-              var finalVersion = values(versions.deserialize(version))
+              var finalVersion = values(versions.deserialize(version).keys)
               t.equal(finalVersion.length, 1)
               t.equal(finalVersion[0].max, 3)
               t.equals(theSum, 30)
@@ -365,6 +382,7 @@ test('fs: adder', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') sum += node.value.value
@@ -376,7 +394,8 @@ test('fs: adder', function (t) {
     },
     storeState: function (s, cb) {
       setTimeout(function () { version = s; cb(null) }, 50)
-    }
+    },
+    clearIndex: function (cb) { version = null; sum = 0; cb(null) }
   })
 
   var pending = 50
@@ -396,7 +415,7 @@ test('fs: adder', function (t) {
   function done (err) {
     t.error(err)
     idx.ready(function () {
-      var finalVersion = values(versions.deserialize(version))
+      var finalVersion = values(versions.deserialize(version).keys)
       t.equal(finalVersion.length, 1)
       t.equal(sum, expectedSum, 'sum of all nodes is as expected')
       t.equal(finalVersion[0].max, 50)
@@ -417,6 +436,7 @@ test('adder + sync', function (t) {
     var pending = 4
     var idx1 = index({
       log: db1,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) {
           if (typeof node.value.value === 'number') sum1 += node.value.value
@@ -426,11 +446,13 @@ test('adder + sync', function (t) {
         if (!--pending) done()
       },
       fetchState: function (cb) { cb(null, version1) },
-      storeState: function (s, cb) { version1 = s; cb(null) }
+      storeState: function (s, cb) { version1 = s; cb(null) },
+      clearIndex: function (cb) { version1 = null; sum1 = 0; cb(null) }
     })
 
     var idx2 = index({
       log: db2,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) {
           if (typeof node.value.value === 'number') sum2 += node.value.value
@@ -440,7 +462,8 @@ test('adder + sync', function (t) {
         if (!--pending) done()
       },
       fetchState: function (cb) { cb(null, version2) },
-      storeState: function (s, cb) { version2 = s; cb(null) }
+      storeState: function (s, cb) { version2 = s; cb(null) },
+      clearIndex: function (cb) { version1 = null; sum2 = 0; cb(null) }
     })
 
     db1.writer(function (err, w) {
@@ -458,13 +481,13 @@ test('adder + sync', function (t) {
       replicate(db1, db2, function () {
         idx1.ready(function () {
           idx2.ready(function () {
-            var finalVersion = values(versions.deserialize(version1))
+            var finalVersion = values(versions.deserialize(version1).keys)
             t.equal(finalVersion.length, 2)
             t.equal(finalVersion[0].max, 3)
             t.equal(finalVersion[1].max, 1)
             t.equal(sum1, 39)
 
-            finalVersion = values(versions.deserialize(version2))
+            finalVersion = values(versions.deserialize(version2).keys)
             t.equal(finalVersion.length, 2)
             t.equal(finalVersion[0].max, 1)
             t.equal(finalVersion[1].max, 3)

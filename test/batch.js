@@ -30,7 +30,8 @@ test('batch size', function (t) {
         next()
       },
       fetchState: function (cb) { cb(null, version) },
-      storeState: function (s, cb) { version = s; cb(null) }
+      storeState: function (s, cb) { version = s; cb(null) },
+      clearIndex: function (cb) { version = null; sum = 0; cb(null) }
     })
 
     idx.ready(function () {
