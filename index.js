@@ -61,7 +61,13 @@ function Indexer (opts) {
         start()
         return
       }
-      state = State.deserialize(state)
+
+      try {
+        state = State.deserialize(state)
+      } catch (e) {
+        self.emit('error', e)
+        return
+      }
 
       // Wipe existing index if versions don't match (and there's a 'clearIndex' implementation)
       var storedVersion = state.version
