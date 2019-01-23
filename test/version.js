@@ -111,8 +111,8 @@ test('version: reopening index @ same version -> no re-index', function (t) {
   }
 })
 
-test('version: reopening index @ new version -> re-index', function (t) {
-  t.plan(10)
+test('version: reopening index @ new version -> re-index -> reopen -> no re-index', function (t) {
+  t.plan(11)
 
   var tmpdir = tmp.dirSync().name
 
@@ -128,7 +128,9 @@ test('version: reopening index @ new version -> re-index', function (t) {
 
   indexV1(function () {
     indexV2(function () {
-      t.end()
+      indexV3(function () {
+        t.end()
+      })
     })
   })
 
@@ -212,6 +214,28 @@ test('version: reopening index @ new version -> re-index', function (t) {
 
     idx.ready(function () {
       t.equal(batchCalls, 1)
+      t.equal(sum, 30)
+      cb()
+    })
+  }
+
+  function indexV3 (cb) {
+    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+
+    var idx = index({
+      log: db,
+      version: 2,
+      maxBatch: 10,
+      batch: function (nodes, next) {
+        t.fail('batch should not be called')
+        next()
+      },
+      fetchState: function (cb) { cb(null, version) },
+      storeState: function (s, cb) { version = s; cb(null) },
+      clearIndex: function (cb) { t.fail('clearIndex should not be called') }
+    })
+
+    idx.ready(function () {
       t.equal(sum, 30)
       cleanup(function () {
         t.ok('cleanup')

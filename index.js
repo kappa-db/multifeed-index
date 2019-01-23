@@ -196,7 +196,7 @@ Indexer.prototype._run = function () {
               didWork = true
               self._batch(nodes, function () {
                 self._at[key].max += processed
-                self._storeState(State.serialize(self._at), function () {
+                self._storeState(State.serialize(self._at, self._version), function () {
                   self.emit('indexed', nodes)
                   done()
                 })
