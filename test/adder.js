@@ -38,6 +38,7 @@ test('adder', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -51,18 +52,18 @@ test('adder', function (t) {
 
   var pending = 3
   db.writer(function (err, w) {
-    t.error(err)
-    w.append({value: 17}, function (err) { t.error(err) })
-    w.append({value: 12}, function (err) { t.error(err) })
-    w.append({value: 1}, function (err) { t.error(err) })
+    t.error(err, 'got writer')
+    w.append({value: 17}, function (err) { t.error(err, 'wrote 17') })
+    w.append({value: 12}, function (err) { t.error(err, 'wrote 12') })
+    w.append({value: 1}, function (err) { t.error(err, 'wrote 1') })
   })
 
   function done () {
     idx.ready(function () {
       var finalVersion = values(versions.deserialize(version).keys)
-      t.equal(finalVersion.length, 1)
-      t.equal(finalVersion[0].max, 3)
-      t.equal(sum, 30)
+      t.equal(finalVersion.length, 1, 'correct # of keys')
+      t.equal(finalVersion[0].max, 3, 'correct # of entries')
+      t.equal(sum, 30, 'correct sum')
     })
   }
 })
@@ -77,6 +78,7 @@ test('adder: picks up where it left off', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       next()
       if (!--pending) done()
@@ -102,6 +104,7 @@ test('adder: picks up where it left off', function (t) {
       var version2 = version.slice()
       index({
         log: db,
+        maxBatch: 1,
         batch: function (nodes, next) {
           nodes.forEach(function (node) { sum += node.value.value })
 
@@ -129,6 +132,7 @@ test('adder /w slow versions', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -171,6 +175,7 @@ test('adder /w many concurrent PUTs', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) { sum += node.value.value })
       next()
@@ -230,6 +235,7 @@ test('adder /w index made AFTER db population', function (t) {
   function done () {
     var idx = index({
       log: db,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) { sum += node.value.value })
         next()
@@ -267,6 +273,7 @@ test('adder /w async storage', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') {
@@ -323,6 +330,7 @@ test('adder /w async storage: ready', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') {
@@ -374,6 +382,7 @@ test('fs: adder', function (t) {
 
   var idx = index({
     log: db,
+    maxBatch: 1,
     batch: function (nodes, next) {
       nodes.forEach(function (node) {
         if (typeof node.value.value === 'number') sum += node.value.value
@@ -427,6 +436,7 @@ test('adder + sync', function (t) {
     var pending = 4
     var idx1 = index({
       log: db1,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) {
           if (typeof node.value.value === 'number') sum1 += node.value.value
@@ -442,6 +452,7 @@ test('adder + sync', function (t) {
 
     var idx2 = index({
       log: db2,
+      maxBatch: 1,
       batch: function (nodes, next) {
         nodes.forEach(function (node) {
           if (typeof node.value.value === 'number') sum2 += node.value.value
