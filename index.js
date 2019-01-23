@@ -28,8 +28,10 @@ function Indexer (opts) {
   this._state = Status.Indexing
 
   this._at = null
-  var state
+
   if (!opts.storeState && !opts.fetchState && !opts.clearIndex) {
+    // In-memory storage implementation
+    var state
     this._storeState = function (buf, cb) {
       state = buf
       process.nextTick(cb)
