@@ -6,9 +6,7 @@ module.exports = Indexer
 
 var Status = {
   Indexing: 1,
-  Ready: 2,
-  Closing: 3,
-  Closed: 4
+  Ready: 2
 }
 
 function Indexer (opts) {
@@ -102,7 +100,7 @@ function Indexer (opts) {
 inherits(Indexer, EventEmitter)
 
 Indexer.prototype.ready = function (fn) {
-  if (this._state === Status.Ready || this._state === Status.Closed || this._state === Status.Closing) process.nextTick(fn)
+  if (this._state === Status.Ready) process.nextTick(fn)
   else this.once('ready', fn)
 }
 
