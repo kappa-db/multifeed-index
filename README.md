@@ -176,6 +176,12 @@ latest known change. The `cb()` function fires exactly once. You may call
 
 Event emitted when entries have finished being indexed.
 
+### index.on('error', function (err) {})
+
+Event emitted when an error within multifeed-index has occurred. This is very
+important to listen on, lest things suddenly seem to break and it's not
+immediately clear why.
+
 ## Install
 
 ```
