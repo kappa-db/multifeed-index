@@ -161,7 +161,7 @@ Optional `opts` include:
   change the data format of the index and want all peers to rebuild to use this
   format. Defaults to `1`.
 - `maxBatch`: maximum batch size of nodes to process in one `batch` call.
-  Defaults to `1`.
+  Defaults to `50`.
 - `clearIndex`: Function of the form `function (cb)`. Called by the indexer
   when a new version for the index has been passed in (via `opts.version`) and
   the index needs to be cleared & regenerated.

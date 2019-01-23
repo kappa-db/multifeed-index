@@ -24,7 +24,7 @@ function Indexer (opts) {
   this._version = unset(opts.version) ? 1 : opts.version
   this._log = opts.log
   this._batch = opts.batch
-  this._maxBatch = unset(opts.maxBatch) ? 1 : opts.maxBatch
+  this._maxBatch = unset(opts.maxBatch) ? 50 : opts.maxBatch
   this._state = Status.Indexing
 
   this._at = null
