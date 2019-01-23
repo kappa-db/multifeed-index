@@ -2,9 +2,53 @@
 
 > Build an index over a set of hypercores.
 
-Traverses a set of hypercores (as a
-[multifeed](https://github.com/noffle/multifeed)) and calls a user
+Traverses a set of hypercores (as a [multifeed][multifeed] and calls a user
 indexing function to build an index.
+
+## Purpose
+
+A [multifeed][multifeed] is a set of append-only logs (feeds), with the
+property that only the feed's author can write new entries to it.
+
+One type of document that you might write to such a feed are key -> value
+pairs. Maybe documents looks like this:
+
+```js
+{
+  id: '23482934',
+  name: 'quinn',
+  gender: null
+}
+```
+
+So some key, `'23482934'`, could can map to this document. How could you make
+this look-up from `'23482934'` to the aforementioned document fast? What if
+there are thousands of such entries?
+
+You'd probably want to build some kind of index. One that iterates over every
+entry in every feed, and also listens for new entries that get added. Then you
+could create an efficient data structure (say, maybe with
+[level](https://github.com/Level/level)) that can map each key to a value
+quickly. 
+
+Good news: this is essentially what `multifeed-index` does!
+
+It does this by taking a multifeed you give it, along with three functions that
+the user provides:
+
+1. `storeState(state, cb)`: multifeed-index will give you a `Buffer` object,
+   `state`, to store somewhere of your choosing. This could be in memory, to a
+   database, to a JSON file, to browser storage, or whatever makes sense for
+   your program. The module doesn't want to tie you down to a specific storage
+   method.
+2. `fetchState(cb)`: Like `storeState`, except this function will be called by
+   multifeed-index when it needs to retrieve the state. Your job is to call the
+   callback `cb` with the same `state` Buffer that was given to `storeState`
+   earlier.
+3. `purgeIndex(cb)`: This only gets called when you change the `version` of the
+   multifeed-index (see below). This function should delete the entire index
+   *and* whatever `state` it stored earlier, so that the new version of the
+   index can be regenerated from scratch.
 
 ## Example
 
@@ -14,7 +58,7 @@ Let's build a key-value index using this and
 ```js
 var hypercore = require('hypercore')
 var multifeed = require('multifeed')
-var indexer = require('.')
+var indexer = require('multifeed-index')
 var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
 var memdb = require('memdb')
@@ -145,3 +189,6 @@ $ npm install multifeed-index
 ## License
 
 ISC
+
+[multifeed]: https://github.com/noffle/multifeed
+
