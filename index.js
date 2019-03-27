@@ -91,6 +91,7 @@ function Indexer (opts) {
   }
 
   this._log.on('feed', function (feed, idx) {
+    feed.setMaxListeners(128)
     feed.ready(function () {
       feed.on('append', function () {
         self._run()
@@ -140,6 +141,7 @@ Indexer.prototype._run = function () {
       }
 
       self._log.feeds().forEach(function (feed) {
+        feed.setMaxListeners(128)
         feed.on('append', function () {
           self._run()
         })
