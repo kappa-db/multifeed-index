@@ -114,7 +114,10 @@ Indexer.prototype.ready = function (fn) {
 }
 
 Indexer.prototype._run = function () {
-  if (this._state !== Status.Ready) return
+  if (this._state !== Status.Ready) {
+    this._pending = true
+    return
+  }
   var self = this
 
   this._state = Status.Indexing
@@ -175,13 +178,12 @@ Indexer.prototype._run = function () {
         var to = Math.min(feeds[i].length, at + self._maxBatch)
 
         if (!feeds[i].has(at, to)) {
-          didWork = true
-          return done()
+          return collect(i + 1)
         } else if (at < to) {
           // TODO: This waits for all of the blocks to be available, and
           // actually blocks ALL indexing until it's ready. The intention is to
           // get min(maxBatch, feed.length-at) CONTIGUOUS entries
-          feeds[i].getBatch(at, to, {wait: true}, function (err, res) {
+          feeds[i].getBatch(at, to, {wait: false}, function (err, res) {
             if (err || !res.length) {
               return collect(i + 1)
             }
@@ -212,7 +214,8 @@ Indexer.prototype._run = function () {
     function done () {
       if (!--pending) {
         self._state = Status.Ready
-        if (didWork) {
+        if (didWork || self._pending) {
+          self._pending = false
           self._run()
         } else {
           self.emit('ready')
