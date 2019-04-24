@@ -172,6 +172,16 @@ Registers the callback `cb()` to fire when the indexes have "caught up" to the
 latest known change. The `cb()` function fires exactly once. You may call
 `index.ready()` multiple times with different functions.
 
+### index.pause([cb])
+
+Pauses the indexing process. Whatever batches of entries are currently being
+processed will finish first. If a callback `cb` is given, it will be called
+once pending entries are processed and the indexer is fully paused.
+
+### index.resume()
+
+Synchronously restarts a paused indexer.
+
 ### index.on('indexed', function (nodes) {})
 
 Event emitted when entries have finished being indexed.

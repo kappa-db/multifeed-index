@@ -6,7 +6,8 @@ module.exports = Indexer
 
 var Status = {
   Indexing: 1,
-  Ready: 2
+  Ready: 2,
+  Paused: 3
 }
 
 function Indexer (opts) {
@@ -108,12 +109,44 @@ function Indexer (opts) {
 
 inherits(Indexer, EventEmitter)
 
+Indexer.prototype.pause = function (cb) {
+  cb = cb || function () {}
+  var self = this
+
+  if (this._state === Status.Paused || this._wantPause) {
+    process.nextTick(cb)
+  } else if (this._state === Status.Ready) {
+    this._state = Status.Paused
+    process.nextTick(cb)
+  } else {
+    this._wantPause = true
+    this.once('pause', function () {
+      self._wantPause = false
+      self._state = Status.Paused
+      cb()
+    })
+  }
+}
+
+Indexer.prototype.resume = function () {
+  if (this._state !== Status.Paused) return
+
+  this._state = Status.Ready
+  this._run()
+}
+
 Indexer.prototype.ready = function (fn) {
   if (this._state === Status.Ready) process.nextTick(fn)
   else this.once('ready', fn)
 }
 
 Indexer.prototype._run = function () {
+  if (this._wantPause) {
+    this._wantPause = false
+    this._pending = true
+    this.emit('pause')
+    return
+  }
   if (this._state !== Status.Ready) {
     this._pending = true
     return
