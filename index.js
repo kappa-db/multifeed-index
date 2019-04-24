@@ -162,53 +162,51 @@ Indexer.prototype._run = function () {
 
     ;(function collect (i) {
       if (i >= feeds.length) return done()
-      var key = feeds[i].key.toString('hex')
 
-      if (self._at[key] === undefined) {
-        self._at[key] = { key: feeds[i].key, min: 0, max: 0 }
-      }
+      feeds[i].ready(function () {
+        var key = feeds[i].key.toString('hex')
 
-      // prefer to process forward
-      var at = self._at[key].max
-      var to = Math.min(feeds[i].length, at + self._maxBatch)
+        if (self._at[key] === undefined) {
+          self._at[key] = { key: feeds[i].key, min: 0, max: 0 }
+        }
 
-      if (at < to) {
-        var toCollect = to - at
-        var processed = 0
-        var bailed = false
-        for (var seq = at; seq < to; seq++) {
-          feeds[i].get(seq, {wait: false}, function (seq, err, node) {
-            if (bailed) return
-            var found = true
-            if (err) {
-              found = false
-              bailed = true
+        // prefer to process forward
+        var at = self._at[key].max
+        var to = Math.min(feeds[i].length, at + self._maxBatch)
+
+        if (!feeds[i].has(at, to)) {
+          didWork = true
+          return done()
+        } else if (at < to) {
+          // TODO: This waits for all of the blocks to be available, and
+          // actually blocks ALL indexing until it's ready. The intention is to
+          // get min(maxBatch, feed.length-at) CONTIGUOUS entries
+          feeds[i].getBatch(at, to, {wait: true}, function (err, res) {
+            if (err || !res.length) {
               return collect(i + 1)
             }
-            toCollect--
-            processed++
-            if (found) {
+            for (var j = 0; j < res.length; j++) {
+              var node = res[j]
               nodes.push({
                 key: feeds[i].key.toString('hex'),
-                seq: seq,
+                seq: j + at,
                 value: node
               })
             }
-            if (!toCollect) {
-              didWork = true
-              self._batch(nodes, function () {
-                self._at[key].max += processed
-                self._storeState(State.serialize(self._at, self._version), function () {
-                  self.emit('indexed', nodes)
-                  done()
-                })
+
+            didWork = true
+            self._batch(nodes, function () {
+              self._at[key].max += nodes.length
+              self._storeState(State.serialize(self._at, self._version), function () {
+                self.emit('indexed', nodes)
+                done()
               })
-            }
-          }.bind(null, seq))
+            })
+          })
+        } else {
+          collect(i + 1)
         }
-      } else {
-        collect(i + 1)
-      }
+      })
     })(0)
 
     function done () {
