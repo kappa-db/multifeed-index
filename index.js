@@ -29,6 +29,9 @@ function Indexer (opts) {
   this._state = Status.Indexing
 
   this._at = null
+  // bind methods to this so we can pass them directly to event listeners
+  this._run = this._run.bind(this)
+  this._onNewFeed = this._onNewFeed.bind(this)
 
   if (!opts.storeState && !opts.fetchState && !opts.clearIndex) {
     // In-memory storage implementation
@@ -91,46 +94,73 @@ function Indexer (opts) {
     self._run()
   }
 
-  this._log.on('feed', function (feed, idx) {
-    feed.setMaxListeners(128)
-    feed.ready(function () {
-      feed.on('append', function () {
-        self._run()
-      })
-      feed.on('download', function () {
-        self._run()
-      })
-      if (self._state === Status.Ready) self._run()
-    })
-  })
+  this._log.on('feed', this._onNewFeed)
 
   this.setMaxListeners(128)
 }
 
 inherits(Indexer, EventEmitter)
 
+Indexer.prototype._onNewFeed = function (feed, idx) {
+  var self = this
+  feed.setMaxListeners(128)
+  feed.ready(function () {
+    // It's possible these listeners are already attached. Ensure they are
+    // removed before attaching them to avoid attaching them twice
+    feed.removeListener('append', self._run)
+    feed.removeListener('download', self._run)
+    feed.on('append', self._run)
+    feed.on('download', self._run)
+    if (self._state === Status.Ready) self._run()
+  })
+}
+
 Indexer.prototype.pause = function (cb) {
   cb = cb || function () {}
   var self = this
 
   if (this._state === Status.Paused || this._wantPause) {
+    removeListeners()
     process.nextTick(cb)
   } else if (this._state === Status.Ready) {
     this._state = Status.Paused
+    removeListeners()
     process.nextTick(cb)
   } else {
     this._wantPause = true
     this.once('pause', function () {
       self._wantPause = false
       self._state = Status.Paused
+      removeListeners()
       cb()
+    })
+  }
+
+  // Remove event listeners when the indexer is paused. Even though when paused
+  // _run is noop, with many feeds and 6 indexes, this ends up in thousands of
+  // function since listeners are called for every record added to a feed.
+  function removeListeners () {
+    self._log.removeListener('feed', self._onNewFeed)
+    self._log.feeds().forEach(function (feed) {
+      feed.removeListener('append', self._run)
+      feed.removeListener('download', self._run)
     })
   }
 }
 
 Indexer.prototype.resume = function () {
+  var self = this
+  // Edge case, if resume is called during the same tick that pause is pending
+  if (this._wantPause) {
+    return this.once('pause', this.resume)
+  }
   if (this._state !== Status.Paused) return
 
+  self._log.on('feed', this._onNewFeed)
+  self._log.feeds().forEach(function (feed) {
+    feed.on('append', self._run)
+    feed.on('download', self._run)
+  })
   this._state = Status.Ready
   this._run()
 }
@@ -178,12 +208,12 @@ Indexer.prototype._run = function () {
 
       self._log.feeds().forEach(function (feed) {
         feed.setMaxListeners(128)
-        feed.on('append', function () {
-          self._run()
-        })
-        feed.on('download', function () {
-          self._run()
-        })
+        // The ready() method also adds these events listeners. Try to remove
+        // them first so that they aren't added twice.
+        feed.removeListener('append', self._run)
+        feed.removeListener('download', self._run)
+        feed.on('append', self._run)
+        feed.on('download', self._run)
       })
 
       work()
