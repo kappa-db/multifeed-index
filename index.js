@@ -29,6 +29,9 @@ function Indexer (opts) {
   this._state = Status.Indexing
 
   this._at = null
+  // bind methods to this so we can pass them directly to event listeners
+  this._run = this._run.bind(this)
+  this._onNewFeed = this._onNewFeed.bind(this)
 
   if (!opts.storeState && !opts.fetchState && !opts.clearIndex) {
     // In-memory storage implementation
@@ -91,23 +94,26 @@ function Indexer (opts) {
     self._run()
   }
 
-  this._log.on('feed', function (feed, idx) {
-    feed.setMaxListeners(128)
-    feed.ready(function () {
-      feed.on('append', function () {
-        self._run()
-      })
-      feed.on('download', function () {
-        self._run()
-      })
-      if (self._state === Status.Ready) self._run()
-    })
-  })
+  this._log.on('feed', this._onNewFeed)
 
   this.setMaxListeners(128)
 }
 
 inherits(Indexer, EventEmitter)
+
+Indexer.prototype._onNewFeed = function (feed, idx) {
+  var self = this
+  feed.setMaxListeners(128)
+  feed.ready(function () {
+    // It's possible these listeners are already attached. Ensure they are
+    // removed before attaching them to avoid attaching them twice
+    feed.removeListener('append', self._run)
+    feed.removeListener('download', self._run)
+    feed.on('append', self._run)
+    feed.on('download', self._run)
+    if (self._state === Status.Ready) self._run()
+  })
+}
 
 Indexer.prototype.pause = function (cb) {
   cb = cb || function () {}
@@ -178,12 +184,12 @@ Indexer.prototype._run = function () {
 
       self._log.feeds().forEach(function (feed) {
         feed.setMaxListeners(128)
-        feed.on('append', function () {
-          self._run()
-        })
-        feed.on('download', function () {
-          self._run()
-        })
+        // The ready() method also adds these events listeners. Try to remove
+        // them first so that they aren't added twice.
+        feed.removeListener('append', self._run)
+        feed.removeListener('download', self._run)
+        feed.on('append', self._run)
+        feed.on('download', self._run)
       })
 
       work()
