@@ -96,7 +96,7 @@ function Indexer (opts) {
 
   this._log.on('feed', this._onNewFeed)
 
-  this.setMaxListeners(128)
+  this.setMaxListeners(1024)
 }
 
 inherits(Indexer, EventEmitter)
