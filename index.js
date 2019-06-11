@@ -57,7 +57,7 @@ function Indexer (opts) {
 
   this._log.ready(function () {
     self._fetchState(function (err, state) {
-      if (err) {
+      if (err && !err.notFound) {
         self.emit('error', err)
         return
       }
@@ -168,7 +168,7 @@ Indexer.prototype._run = function () {
   // load state from storage
   if (!this._at) {
     this._fetchState(function (err, state) {
-      if (err) throw err // TODO: how to bubble up errors? eventemitter?
+      if (err && !err.notFound) throw err // TODO: how to bubble up errors? eventemitter?
       if (!state) {
         self._at = {}
         self._log.feeds().forEach(function (feed) {
