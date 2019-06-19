@@ -371,7 +371,7 @@ test('adder /w async storage: ready', function (t) {
 })
 
 test('fs: adder', function (t) {
-  t.plan(55)
+  t.plan(56)
 
   var id = String(Math.random()).substring(2)
   var dir = path.join(tmp(), 'hyperdb-index-test-' + id)
@@ -419,7 +419,9 @@ test('fs: adder', function (t) {
       t.equal(finalVersion.length, 1)
       t.equal(sum, expectedSum, 'sum of all nodes is as expected')
       t.equal(finalVersion[0].max, 50)
-      rimraf.sync(dir)
+      rimraf(dir, function (err) {
+        t.error(err)
+      })
     })
   }
 })
