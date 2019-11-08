@@ -45,7 +45,7 @@ the user provides:
    multifeed-index when it needs to retrieve the state. Your job is to call the
    callback `cb` with the same `state` Buffer that was given to `storeState`
    earlier.
-3. `purgeIndex(cb)`: This only gets called when you change the `version` of the
+3. `clearIndex(cb)`: This only gets called when you change the `version` of the
    multifeed-index (see below). This function should delete the entire index
    *and* whatever `state` it stored earlier, so that the new version of the
    index can be regenerated from scratch.
