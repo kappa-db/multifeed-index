@@ -15,7 +15,7 @@
   "devDependencies": {
     "hypercore": "^6.23.1",
     "memdb": "^1.3.1",
-    "multifeed": "^3.0.8",
+    "multifeed": "^4.1.10",
     "random-access-memory": "^3.1.1",
     "standard": "^11.0.1",
     "tape": "^4.9.2",
