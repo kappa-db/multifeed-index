@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var raf = require('random-access-file')
 var rimraf = require('rimraf')
@@ -66,7 +65,7 @@ test('version: reopening index @ same version -> no re-index', function (t) {
   }
 
   function indexV1 (cb) {
-    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+    var db = multifeed(storage, { valueEncoding: 'json' })
 
     writeData(db, function () {
       var idx = index({
@@ -90,7 +89,7 @@ test('version: reopening index @ same version -> no re-index', function (t) {
   }
 
   function indexV2 (cb) {
-    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+    var db = multifeed(storage, { valueEncoding: 'json' })
 
     var idx = index({
       log: db,
@@ -170,7 +169,7 @@ test('version: reopening index @ new version -> re-index -> reopen -> no re-inde
   }
 
   function indexV1 (cb) {
-    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+    var db = multifeed(storage, { valueEncoding: 'json' })
 
     writeData(db, function () {
       var idx = index({
@@ -194,7 +193,7 @@ test('version: reopening index @ new version -> re-index -> reopen -> no re-inde
   }
 
   function indexV2 (cb) {
-    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+    var db = multifeed(storage, { valueEncoding: 'json' })
 
     var batchCalls = 0
     var idx = index({
@@ -220,7 +219,7 @@ test('version: reopening index @ new version -> re-index -> reopen -> no re-inde
   }
 
   function indexV3 (cb) {
-    var db = multifeed(hypercore, storage, { valueEncoding: 'json' })
+    var db = multifeed(storage, { valueEncoding: 'json' })
 
     var idx = index({
       log: db,

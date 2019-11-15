@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var indexer = require('..')
 var umkv = require('unordered-materialized-kv')
@@ -9,7 +8,7 @@ var memdb = require('memdb')
 test('kv: create index then data', function (t) {
   t.plan(10)
 
-  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var multi = multifeed(ram, { valueEncoding: 'json' })
 
   var kv = umkv(memdb())
 
@@ -71,7 +70,7 @@ test('kv: create index then data', function (t) {
 test('indexed event', function (t) {
   t.plan(4)
 
-  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var multi = multifeed(ram, { valueEncoding: 'json' })
 
   var entries = [1, 2, 3, 4, 5, 6]
   multi.writer(function (err, w) {

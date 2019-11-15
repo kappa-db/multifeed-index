@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var ram = require('random-access-memory')
 var index = require('..')
@@ -7,7 +6,7 @@ var index = require('..')
 test('batch size', function (t) {
   t.plan(6)
 
-  var db = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var db = multifeed(ram, { valueEncoding: 'json' })
 
   var pending = 3
   db.writer(function (err, w) {

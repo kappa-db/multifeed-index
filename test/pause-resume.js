@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var indexer = require('..')
 var ram = require('random-access-memory')
@@ -8,7 +7,7 @@ test('pause while ready', function (t) {
   t.plan(4)
 
   var count = 0
-  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var multi = multifeed(ram, { valueEncoding: 'json' })
   var counter = indexer({
     log: multi,
     batch: function (nodes, next) {
@@ -46,7 +45,7 @@ test('pause while indexing', function (t) {
   t.plan(4)
 
   var count = 0
-  var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var multi = multifeed(ram, { valueEncoding: 'json' })
   var counter = indexer({
     log: multi,
     batch: function (nodes, next) {

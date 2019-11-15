@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var ram = require('random-access-memory')
 var memdb = require('memdb')
@@ -8,8 +7,8 @@ var indexer = require('../')
 
 test('kv merge fork', function (t) {
   t.plan(19)
-  var a = multifeed(hypercore, ram, { valueEncoding: 'json' })
-  var b = multifeed(hypercore, ram, { valueEncoding: 'json' })
+  var a = multifeed(ram, { valueEncoding: 'json' })
+  var b = multifeed(ram, { valueEncoding: 'json' })
   var akv = umkv(memdb())
   var bkv = umkv(memdb())
   var ai = indexer({
@@ -115,8 +114,8 @@ test('kv merge fork', function (t) {
 
 function sync (a, b, cb) {
   var pending = 2
-  var sa = a.replicate()
-  var sb = b.replicate()
+  var sa = a.replicate(true)
+  var sb = b.replicate(false)
   sa.pipe(sb).pipe(sa)
   sa.on('error', cb)
   sb.on('error', cb)

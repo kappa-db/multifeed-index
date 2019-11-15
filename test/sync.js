@@ -1,5 +1,4 @@
 var test = require('tape')
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var ram = require('random-access-memory')
 var index = require('..')
@@ -65,9 +64,9 @@ test('multiple feeds', function (t) {
 })
 
 function createTwo (cb) {
-  var a = multifeed(hypercore, ram, {valueEncoding: 'json'})
+  var a = multifeed(ram, {valueEncoding: 'json'})
   a.ready(function () {
-    var b = multifeed(hypercore, ram, {valueEncoding: 'json'})
+    var b = multifeed(ram, {valueEncoding: 'json'})
     b.ready(function () {
       cb(a, b)
     })
@@ -75,6 +74,6 @@ function createTwo (cb) {
 }
 
 function replicate (a, b, cb) {
-  var stream = a.replicate()
-  stream.pipe(b.replicate()).pipe(stream).on('end', cb)
+  var stream = a.replicate(true)
+  stream.pipe(b.replicate(false)).pipe(stream).on('end', cb)
 }

@@ -56,14 +56,13 @@ Let's build a key-value index using this and
 [unordered-materialized-kv](https://github.com/substack/unordered-materialized-kv):
 
 ```js
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var indexer = require('multifeed-index')
 var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
 var memdb = require('memdb')
 
-var multi = multifeed(hypercore, ram, { valueEncoding: 'json' })
+var multi = multifeed(ram, { valueEncoding: 'json' })
 
 var kv = umkv(memdb())
 
