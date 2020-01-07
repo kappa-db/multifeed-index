@@ -257,6 +257,12 @@ Indexer.prototype._run = function () {
           self._pending = false
           self._run()
         } else {
+          if (self._wantPause) {
+            self._wantPause = false
+            self._pending = true
+            self.emit('pause')
+            return
+          }
           self.emit('ready')
         }
       }
