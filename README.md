@@ -181,6 +181,25 @@ once pending entries are processed and the indexer is fully paused.
 
 Synchronously restarts a paused indexer.
 
+### var state = index.getState()
+
+Returns the current state of the indexer.
+
+`state` is an object that looks like
+
+```js
+{
+  state: 'indexing',                // one of ['idle', 'indexing', 'paused', 'error']
+  context: {
+    totalBlocks: 50,                // total # of blocks known of across all feeds
+    indexedBlocks: 18,              // total # of blocks indexed so far
+    prevIndexedBlocks: 0,           // total # of blocks indexed as of the previous indexing run
+    indexStartTime: 1583184761581,  // ms since epoch when the last indexing run started
+    error: null                     // error state (indexing is unusable if this is set)
+  }
+}
+```
+
 ### index.on('indexed', function (nodes) {})
 
 Event emitted when entries have finished being indexed.
@@ -190,6 +209,11 @@ Event emitted when entries have finished being indexed.
 Event emitted when an error within multifeed-index has occurred. This is very
 important to listen on, lest things suddenly seem to break and it's not
 immediately clear why.
+
+### index.on('state-update', function (state) {})
+
+Event emitted when the internal state of the indexer changes. It has the same
+form as the `state` object returned by `index.getState()` above.
 
 ## Install
 

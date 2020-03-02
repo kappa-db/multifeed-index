@@ -34,7 +34,7 @@ test('batch size', function (t) {
     })
 
     idx.ready(function () {
-      t.equal(sum, 30)
+      t.equal(sum, 30, 'correct sum')
     })
   }
 })
