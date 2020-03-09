@@ -30,6 +30,9 @@ function Indexer (opts) {
   this._batch = opts.batch
   this._maxBatch = unset(opts.maxBatch) ? 50 : opts.maxBatch
 
+  // Is there another pending indexing run?
+  this._pending = false
+
   this._state = {
     state: State.Indexing,
     context: {
@@ -331,7 +334,6 @@ Indexer.prototype.getState = function () {
 
   // hidden states
   if (state.state === State.PreIndexing) state.state = State.Idle
-  if (state.state === State.Init) state.state = State.Idle
 
   return state
 }
