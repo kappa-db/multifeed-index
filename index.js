@@ -1,13 +1,16 @@
 var inherits = require('inherits')
 var EventEmitter = require('events').EventEmitter
-var State = require('./lib/state')
+var IndexState = require('./lib/state')
+var clone = require('clone')
 
 module.exports = Indexer
 
-var Status = {
-  Indexing: 1,
-  Ready: 2,
-  Paused: 3
+var State = {
+  PreIndexing: 'preindexing',
+  Indexing: 'indexing',
+  Idle: 'idle',
+  Paused: 'paused',
+  Error: 'error'
 }
 
 function Indexer (opts) {
@@ -26,21 +29,34 @@ function Indexer (opts) {
   this._log = opts.log
   this._batch = opts.batch
   this._maxBatch = unset(opts.maxBatch) ? 50 : opts.maxBatch
-  this._state = Status.Indexing
+
+  // Is there another pending indexing run?
+  this._pending = false
+
+  this._state = {
+    state: State.Indexing,
+    context: {
+      totalBlocks: 0,
+      indexedBlocks: 0,
+      prevIndexedBlocks: 0,
+      indexStartTime: Date.now(),
+      error: null
+    }
+  }
 
   this._at = null
   // bind methods to this so we can pass them directly to event listeners
-  this._run = this._run.bind(this)
+  this._freshRun = this._run.bind(this, false)
   this._onNewFeed = this._onNewFeed.bind(this)
 
   if (!opts.storeState && !opts.fetchState && !opts.clearIndex) {
     // In-memory storage implementation
     var state
-    this._storeState = function (buf, cb) {
+    this._storeIndexState = function (buf, cb) {
       state = buf
       process.nextTick(cb)
     }
-    this._fetchState = function (cb) {
+    this._fetchIndexState = function (cb) {
       process.nextTick(cb, null, state)
     }
     this._clearIndex = function (cb) {
@@ -48,17 +64,22 @@ function Indexer (opts) {
       process.nextTick(cb)
     }
   } else {
-    this._storeState = opts.storeState
-    this._fetchState = opts.fetchState
+    this._storeIndexState = opts.storeState
+    this._fetchIndexState = opts.fetchState
     this._clearIndex = opts.clearIndex || null
   }
 
   var self = this
 
+  function onError (err) {
+    self._setState(State.Error, { error: err })
+    self.emit('error', err)
+  }
+
   this._log.ready(function () {
-    self._fetchState(function (err, state) {
+    self._fetchIndexState(function (err, state) {
       if (err && !err.notFound) {
-        self.emit('error', err)
+        onError(err)
         return
       }
       if (!state) {
@@ -67,9 +88,9 @@ function Indexer (opts) {
       }
 
       try {
-        state = State.deserialize(state)
+        state = IndexState.deserialize(state)
       } catch (e) {
-        self.emit('error', e)
+        onError(e)
         return
       }
 
@@ -78,7 +99,7 @@ function Indexer (opts) {
       if (storedVersion !== self._version && self._clearIndex) {
         self._clearIndex(function (err) {
           if (err) {
-            self.emit('error', err)
+            onError(err)
           } else {
             start()
           }
@@ -90,8 +111,8 @@ function Indexer (opts) {
   })
 
   function start () {
-    self._state = Status.Ready
-    self._run()
+    self._setState(State.Idle)
+    self._freshRun()
   }
 
   this._log.on('feed', this._onNewFeed)
@@ -107,11 +128,11 @@ Indexer.prototype._onNewFeed = function (feed, idx) {
   feed.ready(function () {
     // It's possible these listeners are already attached. Ensure they are
     // removed before attaching them to avoid attaching them twice
-    feed.removeListener('append', self._run)
-    feed.removeListener('download', self._run)
-    feed.on('append', self._run)
-    feed.on('download', self._run)
-    if (self._state === Status.Ready) self._run()
+    feed.removeListener('append', self._freshRun)
+    feed.removeListener('download', self._freshRun)
+    feed.on('append', self._freshRun)
+    feed.on('download', self._freshRun)
+    if (self._state.state === State.Idle) self._freshRun()
   })
 }
 
@@ -119,55 +140,54 @@ Indexer.prototype.pause = function (cb) {
   cb = cb || function () {}
   var self = this
 
-  if (this._state === Status.Paused || this._wantPause) {
+  if (this._state.state === State.Paused || this._wantPause) {
     process.nextTick(cb)
-  } else if (this._state === Status.Ready) {
-    this._state = Status.Paused
+  } else if (this._state.state === State.Idle) {
+    self._setState(State.Paused)
     process.nextTick(cb)
   } else {
     this._wantPause = true
     this.once('pause', function () {
       self._wantPause = false
-      self._state = Status.Paused
+      self._setState(State.Paused)
       cb()
     })
   }
 }
 
 Indexer.prototype.resume = function () {
-  if (this._state !== Status.Paused) return
+  if (this._state.state !== State.Paused) return
 
-  this._state = Status.Ready
-  this._run()
+  this._setState(State.Idle)
+  this._freshRun()
 }
 
 Indexer.prototype.ready = function (fn) {
-  if (this._state === Status.Ready) process.nextTick(fn)
+  if (this._state.state === State.Idle) process.nextTick(fn)
   else this.once('ready', fn)
 }
 
-Indexer.prototype._run = function () {
+Indexer.prototype._run = function (continuedRun) {
   if (this._wantPause) {
     this._wantPause = false
     this._pending = true
     this.emit('pause')
     return
   }
-  if (this._state !== Status.Ready) {
+  if (!continuedRun && this._state.state !== State.Idle) {
     this._pending = true
     return
   }
   var self = this
 
-  this._state = Status.Indexing
+  this._state.state = State.PreIndexing
 
   var didWork = false
 
-  var pending = 1
-
   // load state from storage
   if (!this._at) {
-    this._fetchState(function (err, state) {
+    this._fetchIndexState(function (err, state) {
+      // TODO: single error handling path (to emit + put in error state)
       if (err && !err.notFound) throw err // TODO: how to bubble up errors? eventemitter?
       if (!state) {
         self._at = {}
@@ -179,17 +199,17 @@ Indexer.prototype._run = function () {
           }
         })
       } else {
-        self._at = State.deserialize(state).keys
+        self._at = IndexState.deserialize(state).keys
       }
 
       self._log.feeds().forEach(function (feed) {
         feed.setMaxListeners(128)
         // The ready() method also adds these events listeners. Try to remove
         // them first so that they aren't added twice.
-        feed.removeListener('append', self._run)
-        feed.removeListener('download', self._run)
-        feed.on('append', self._run)
-        feed.on('download', self._run)
+        feed.removeListener('append', self._freshRun)
+        feed.removeListener('download', self._freshRun)
+        feed.on('append', self._freshRun)
+        feed.on('download', self._freshRun)
       })
 
       work()
@@ -201,6 +221,25 @@ Indexer.prototype._run = function () {
   function work () {
     var feeds = self._log.feeds()
     var nodes = []
+
+    // Check if there is anything new.
+    var indexedBlocks = Object.values(self._at).reduce((accum, entry) => accum + entry.max, 0)
+    var totalBlocks = self._log.feeds().reduce((accum, feed) => accum + feed.length, 0)
+
+    // Bail if no work needs to happen.
+    if (indexedBlocks === totalBlocks) {
+      return done()
+    }
+
+    if (!continuedRun) {
+      const context = {
+        indexStartTime: Date.now(),
+        prevIndexedBlocks: self._state.context.indexedBlocks,
+        indexedBlocks: indexedBlocks,
+        totalBlocks: totalBlocks
+      }
+      self._setState(State.Indexing, context)
+    }
 
     ;(function collect (i) {
       if (i >= feeds.length) return done()
@@ -238,7 +277,7 @@ Indexer.prototype._run = function () {
             didWork = true
             self._batch(nodes, function () {
               self._at[key].max += nodes.length
-              self._storeState(State.serialize(self._at, self._version), function () {
+              self._storeIndexState(IndexState.serialize(self._at, self._version), function () {
                 self.emit('indexed', nodes)
                 done()
               })
@@ -251,23 +290,52 @@ Indexer.prototype._run = function () {
     })(0)
 
     function done () {
-      if (!--pending) {
-        self._state = Status.Ready
-        if (didWork || self._pending) {
-          self._pending = false
-          self._run()
+      if (didWork || self._pending) {
+        self._state.context.totalBlocks = self._log.feeds().reduce(
+          (accum, feed) => accum + feed.length, 0)
+        self._state.context.indexedBlocks = Object.values(self._at).reduce(
+          (accum, entry) => accum + entry.max, 0)
+
+        self._pending = false
+        self._run(true)
+      } else {
+        if (self._wantPause) {
+          self._wantPause = false
+          self._pending = true
+          self.emit('pause')
         } else {
-          if (self._wantPause) {
-            self._wantPause = false
-            self._pending = true
-            self.emit('pause')
-            return
-          }
+          // Don't do a proper state change if this is the first run and
+          // nothing had to be indexed, since it would look like Idle -> Idle
+          // to API consumers.
+          if (continuedRun) self._setState(State.Idle)
+          else self._state.state = State.Idle
+
           self.emit('ready')
         }
       }
     }
   }
+}
+
+// Set state to `state` and apply updates `context` to the state context. Also
+// emits a `state-update` event.
+Indexer.prototype._setState = function (state, context) {
+  if (state === this._state.state) return
+
+  if (!context) context = {}
+
+  this._state.state = state
+  this._state.context = Object.assign({}, this._state.context, context)
+  this.emit('state-update', clone(this._state, false))
+}
+
+Indexer.prototype.getState = function () {
+  const state = clone(this._state, false)
+
+  // hidden states
+  if (state.state === State.PreIndexing) state.state = State.Idle
+
+  return state
 }
 
 function allOrNone (a, b) {

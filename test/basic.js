@@ -3,7 +3,7 @@ var multifeed = require('multifeed')
 var indexer = require('..')
 var umkv = require('unordered-materialized-kv')
 var ram = require('random-access-memory')
-var memdb = require('memdb')
+var memdb = require('level-mem')
 
 test('kv: create index then data', function (t) {
   t.plan(10)

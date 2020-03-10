@@ -1,7 +1,7 @@
 var test = require('tape')
 var multifeed = require('multifeed')
 var ram = require('random-access-memory')
-var memdb = require('memdb')
+var memdb = require('level-mem')
 var umkv = require('unordered-materialized-kv')
 var indexer = require('../')
 
