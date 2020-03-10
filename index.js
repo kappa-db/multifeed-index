@@ -275,9 +275,11 @@ Indexer.prototype._run = function (continuedRun) {
             }
 
             didWork = true
-            self._batch(nodes, function () {
+            self._batch(nodes, function (err) {
+              if (err) return done(err)
               self._at[key].max += nodes.length
-              self._storeIndexState(IndexState.serialize(self._at, self._version), function () {
+              self._storeIndexState(IndexState.serialize(self._at, self._version), function (err) {
+                if (err) return done(err)
                 self.emit('indexed', nodes)
                 done()
               })
@@ -289,7 +291,12 @@ Indexer.prototype._run = function (continuedRun) {
       })
     })(0)
 
-    function done () {
+    function done (err) {
+      if (err) {
+        self._onError(err)
+        return
+      }
+
       if (didWork || self._pending) {
         self._state.context.totalBlocks = self._log.feeds().reduce(
           (accum, feed) => accum + feed.length, 0)
