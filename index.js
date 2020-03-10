@@ -71,7 +71,7 @@ function Indexer (opts) {
 
   var self = this
 
-  function onError (err) {
+  this._onError = function (err) {
     self._setState(State.Error, { error: err })
     self.emit('error', err)
   }
@@ -79,7 +79,7 @@ function Indexer (opts) {
   this._log.ready(function () {
     self._fetchIndexState(function (err, state) {
       if (err && !err.notFound) {
-        onError(err)
+        self._onError(err)
         return
       }
       if (!state) {
@@ -90,7 +90,7 @@ function Indexer (opts) {
       try {
         state = IndexState.deserialize(state)
       } catch (e) {
-        onError(e)
+        self._onError(e)
         return
       }
 
@@ -99,7 +99,7 @@ function Indexer (opts) {
       if (storedVersion !== self._version && self._clearIndex) {
         self._clearIndex(function (err) {
           if (err) {
-            onError(err)
+            self._onError(err)
           } else {
             start()
           }
@@ -188,7 +188,7 @@ Indexer.prototype._run = function (continuedRun) {
   if (!this._at) {
     this._fetchIndexState(function (err, state) {
       // TODO: single error handling path (to emit + put in error state)
-      if (err && !err.notFound) throw err // TODO: how to bubble up errors? eventemitter?
+      if (err && !err.notFound) return self._onError(err)
       if (!state) {
         self._at = {}
         self._log.feeds().forEach(function (feed) {
