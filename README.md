@@ -2,7 +2,7 @@
 
 > Build an index over a set of hypercores.
 
-Traverses a set of hypercores (as a [multifeed][multifeed] and calls a user
+Traverses a set of hypercores as a [multifeed][multifeed] and calls a user
 indexing function to build an index.
 
 ## Purpose
@@ -21,8 +21,8 @@ pairs. Maybe documents looks like this:
 }
 ```
 
-So some key, `'23482934'`, could can map to this document. How could you make
-this look-up from `'23482934'` to the aforementioned document fast? What if
+So some key, `'23482934'`, can map to this document. How could you make
+the lookup from `'23482934'` to the aforementioned document fast? What if
 there are thousands of such entries?
 
 You'd probably want to build some kind of index. One that iterates over every
