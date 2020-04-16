@@ -42,7 +42,7 @@ test('pause while ready', function (t) {
 })
 
 test('pause while indexing', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   var count = 0
   var multi = multifeed(ram, { valueEncoding: 'json' })
@@ -61,9 +61,12 @@ test('pause while indexing', function (t) {
       counter.pause(function () {
         w.append(10, function (err) {
           t.error(err)
-          counter.resume()
           counter.ready(function () {
-            t.equals(count, 31, 'count matches')
+            t.equals(count, 21, 'count matches')
+            counter.resume()
+            counter.ready(function () {
+              t.equals(count, 31, 'count matches')
+            })
           })
         })
       })

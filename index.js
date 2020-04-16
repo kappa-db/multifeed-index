@@ -163,7 +163,7 @@ Indexer.prototype.resume = function () {
 }
 
 Indexer.prototype.ready = function (fn) {
-  if (this._state.state === State.Idle) process.nextTick(fn)
+  if (this._state.state === State.Idle || this._state.state === State.Paused) process.nextTick(fn)
   else this.once('ready', fn)
 }
 
