@@ -42,14 +42,16 @@ test('multiple feeds', function (t) {
         maxBatch: 50,
         batch: batchFn.bind(null, 0),
         fetchState: function (cb) { cb(null, version1) },
-        storeState: function (s, cb) { version1 = s; cb(null) }
+        storeState: function (s, cb) { version1 = s; cb(null) },
+        clearIndex: function (cb) { process.nextTick(cb) }
       })
       var idx2 = index({
         log: b,
         maxBatch: 50,
         batch: batchFn.bind(null, 1),
         fetchState: function (cb) { cb(null, version2) },
-        storeState: function (s, cb) { version2 = s; cb(null) }
+        storeState: function (s, cb) { version2 = s; cb(null) },
+        clearIndex: function (cb) { process.nextTick(cb) }
       })
 
       idx1.ready(function () {

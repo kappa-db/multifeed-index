@@ -187,9 +187,19 @@ Indexer.prototype._run = function (continuedRun) {
   // load state from storage
   if (!this._at) {
     this._fetchIndexState(function (err, state) {
-      // TODO: single error handling path (to emit + put in error state)
       if (err && !err.notFound) return self._onError(err)
       if (!state) {
+        if (!self._clearIndex) return resetAt()
+        self._clearIndex(function (err) {
+          if (err) return self._onError(err)
+          resetAt()
+        })
+      } else {
+        self._at = IndexState.deserialize(state).keys
+        withState()
+      }
+
+      function resetAt () {
         self._at = {}
         self._log.feeds().forEach(function (feed) {
           self._at[feed.key.toString('hex')] = {
@@ -198,21 +208,22 @@ Indexer.prototype._run = function (continuedRun) {
             max: 0
           }
         })
-      } else {
-        self._at = IndexState.deserialize(state).keys
+        withState()
       }
 
-      self._log.feeds().forEach(function (feed) {
-        feed.setMaxListeners(128)
-        // The ready() method also adds these events listeners. Try to remove
-        // them first so that they aren't added twice.
-        feed.removeListener('append', self._freshRun)
-        feed.removeListener('download', self._freshRun)
-        feed.on('append', self._freshRun)
-        feed.on('download', self._freshRun)
-      })
+      function withState () {
+        self._log.feeds().forEach(function (feed) {
+          feed.setMaxListeners(128)
+          // The ready() method also adds these events listeners. Try to remove
+          // them first so that they aren't added twice.
+          feed.removeListener('append', self._freshRun)
+          feed.removeListener('download', self._freshRun)
+          feed.on('append', self._freshRun)
+          feed.on('download', self._freshRun)
+        })
 
-      work()
+        work()
+      }
     })
   } else {
     work()
